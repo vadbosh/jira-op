@@ -40,6 +40,7 @@ This skill encodes the answers to both, and the traps found while getting there.
 | `SKILL.md` | site facts, credentials, permissions, the CLI traps, safety rules |
 | `references/create-task.md` | filing a ticket with every required field, and reading it back |
 | `references/weekly-report.md` | the weekly update: window, sources, structure, tone |
+| `docs/example-weekly-update.txt` | what the produced file looks like, with the keys replaced |
 | `references/investigate.md` | read-only investigation of a ticket before acting |
 | `references/ticket-writing.md` | writing a ticket someone else can execute |
 | `references/commands.md` | jira-cli reference, with the flags that do not exist |

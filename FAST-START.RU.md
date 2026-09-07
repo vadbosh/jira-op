@@ -52,6 +52,8 @@ jira me                       # печатает ваш login — значит �
 weekly-update-2026-08-31_2026-09-06.txt
 ```
 
+Как он выглядит: [docs/example-weekly-update.txt](docs/example-weekly-update.txt)
+
 Содержимое в переписку не выводится, существующий файл не перезаписывается —
 второй запуск создаст `-2`.
 

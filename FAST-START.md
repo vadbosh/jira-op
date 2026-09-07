@@ -50,6 +50,8 @@ was started in:
 weekly-update-2026-08-31_2026-09-06.txt
 ```
 
+What it looks like: [docs/example-weekly-update.txt](docs/example-weekly-update.txt)
+
 The content is not printed in the chat, and an existing file is never
 overwritten — a second run writes `-2`.
 

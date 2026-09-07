@@ -1,0 +1,55 @@
+Engineering Weekly Update — Infrastructure / Platform — August 23, 2026
+Reporting week: Monday, August 17 – Sunday, August 23, 2026
+Boards: PROJ (Sprint 6)
+
+🚩 Decisions Needed
+None this week.
+
+🆘 Escalations / Help Needed
+None this week.
+
+✅ What went well
+PROJ-717 "Blog infrastructure transfer to the staging host" — Infrastructure
+migration: moved the blog from the production path to the staging host,
+including the database and the uploaded content. Closed on August 18 with
+resolution Done; acceptance was a working staging host.
+
+PROJ-707 "Terraform tasks: current and permanent" — Cluster component
+maintenance: scheduled update of node AMI images and cluster plugins across
+three clusters. In progress through the week.
+
+PROJ-243 "Gateway controller implementation" — Gateway API rollout: deployment
+of gatewayclasses, gateway, proxies and routes in the sandbox cluster,
+following the earlier decision to implement the controller via Terraform.
+In progress through the week.
+
+⚠️ What didn't go well / Risks
+None this week.
+
+📌 Key decisions made this week
+No new decisions this week; work continued within the scope already agreed for
+PROJ-707 and PROJ-243.
+
+🔭 Next week
+Continue the cluster component update in PROJ-707 across the three clusters.
+Owner: A. Engineer.
+Continue the Gateway API rollout in PROJ-243 in the sandbox cluster.
+Owner: A. Engineer.
+
+--- not part of the report ---
+
+This is the shape the skill produces, with the keys and names replaced. Note
+what it does and does not contain:
+
+- Two of the three tickets recorded no transition that week. They are here
+  because they were in progress during the window — status WAS "In Progress"
+  DURING is the list, and a status change is not required.
+- An item that is in flight says so plainly and stops. It is not padded to
+  match the length of the finished one.
+- Nothing about ticket age, sprint carry-overs, empty fields or missing
+  comments. That is the tracker's bookkeeping, not the week's work.
+- No Markdown. The section markers are emoji because the destination renders
+  them; everything else is plain text wrapped near 80 characters.
+- The file lands in the project working directory as
+  weekly-update-<start>_<end>.txt, and the assistant answers with the path
+  alone.
