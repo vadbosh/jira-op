@@ -8,6 +8,8 @@
 ни отдельной обёртки над API ставить не нужно. Подходит для Claude Code, Codex
 и Opencode.
 
+**Некогда читать?** → [Быстрый старт](FAST-START.RU.md) · [Fast start](FAST-START.md)
+
 [English version](README.md) · Полное руководство по установке:
 [по-русски](docs/setup.ru.md) · [English](docs/setup.en.md)
 

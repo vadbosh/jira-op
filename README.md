@@ -7,6 +7,8 @@ fields, and write the weekly engineering update from the tickets.**
 It drives [jira-cli](https://github.com/ankitpokhrel/jira-cli) — no MCP server,
 no API wrapper to install. Works in Claude Code, Codex and Opencode.
 
+**In a hurry?** → [Fast start](FAST-START.md) · [Быстрый старт](FAST-START.RU.md)
+
 [Русская версия](README.RU.md) · Full setup guide:
 [English](docs/setup.en.md) · [Русский](docs/setup.ru.md)
 
