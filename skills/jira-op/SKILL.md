@@ -75,10 +75,10 @@ jira_site <site>      # ~/.config/.jira/<site>.yml + <site>.token.env
 It prints the login, refuses a site with no config file, and names the
 `jira init` command that would create one.
 
-The WL site keeps the default filenames (`.config.yml`, `token.env`) and needs
+The default site keeps the default filenames (`.config.yml`, `token.env`) and needs
 no re-`init`; only a new site is initialised. Unsetting `JIRA_CONFIG_FILE` is
 what returns to it — leaving the variable pointed at another site while
-sourcing the WL token yields `401`, which reads as a broken token rather than
+sourcing the default token yields `401`, which reads as a broken token rather than
 a wrong pairing.
 
 A missing config file fails cleanly rather than prompting:
@@ -96,7 +96,7 @@ what the user typed elsewhere.
 
 **Everything <PROJECT>-specific in this skill stops applying on another site** —
 issue type `<ISSUE_TYPE>`, the `customfield_*` ids, the statuses, board
-board `<BOARD_ID>`. Re-read `createmeta` for the new project before writing anything.
+`<BOARD_ID>`. Re-read `createmeta` for the new project before writing anything.
 `references/investigate.md` and `references/ticket-writing.md` carry no ids and
 still apply.
 
