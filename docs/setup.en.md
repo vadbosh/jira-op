@@ -161,6 +161,19 @@ It looks for `~/.claude/skills`, `~/.config/opencode/skills` and
 A destination that differs from the source is copied to `<dir>.bak.<timestamp>`
 before being replaced.
 
+**Linux and macOS only** — it is a bash script. Under Windows use WSL or Git
+Bash, or copy the folder by hand:
+
+```
+skills\jira-op  ->  %USERPROFILE%\.claude\skills\jira-op
+                ->  %USERPROFILE%\.codex\skills\jira-op
+                ->  %APPDATA%\opencode\skills\jira-op
+```
+
+The skill is Markdown; only the installer is shell. `tools/add-site.sh` and
+`tools/jira_site.sh` are bash as well, so multi-site switching on native
+Windows means setting `JIRA_CONFIG_FILE` and `JIRA_API_TOKEN` yourself.
+
 Restart the assistant, or start a new session, so it re-reads its skills.
 
 ## 7. More than one Jira site

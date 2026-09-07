@@ -60,6 +60,11 @@ cd jira-op
 
 Нужны `jira` (jira-cli 1.7.0 или новее), `jq`, `curl`.
 
+`install.sh` написан на bash — это **Linux и macOS** либо WSL или Git Bash под
+Windows. Установщика на PowerShell нет: в родном Windows скопируйте
+`skills\jira-op` в каталог скилов ассистента вручную. Сам скил состоит из
+Markdown, поэтому больше ничего от платформы не зависит.
+
 Дальше настраивается сам jira-cli и сохраняется токен:
 
 ```bash

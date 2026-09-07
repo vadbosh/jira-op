@@ -173,9 +173,9 @@ never runs as a test.
 
 ## Language
 
-**Everything written into Jira is English.** Summary, description, Potential
-Risks, Acceptance Test, comments, and the weekly update — all English, always,
-regardless of the language of the conversation that produced them.
+**Everything written into Jira is English.** Summary, description, every custom
+field, comments, and the weekly update — all English, always, regardless of the
+language of the conversation that produced them.
 
 The conversation may be in Russian; the ticket is read by people who do not
 speak it. When the user supplies the content in Russian, translate it into

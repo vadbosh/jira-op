@@ -57,6 +57,11 @@ cd jira-op
 
 Prerequisites: `jira` (jira-cli 1.7.0 or later), `jq`, `curl`.
 
+`install.sh` is a bash script — **Linux and macOS**, or WSL / Git Bash on
+Windows. There is no PowerShell installer; on native Windows copy
+`skills\jira-op` into the assistant's skills directory yourself. The skill is
+Markdown, so nothing else about it is platform-specific.
+
 Then configure jira-cli itself and store the token:
 
 ```bash

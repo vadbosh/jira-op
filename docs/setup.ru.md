@@ -163,6 +163,19 @@ curl -s -u "$(jira me):$JIRA_API_TOKEN" \
 Если содержимое в месте назначения отличается от исходного, оно копируется в
 `<каталог>.bak.<метка времени>` до замены.
 
+**Только Linux и macOS** — это скрипт на bash. Под Windows берите WSL или Git
+Bash либо скопируйте каталог вручную:
+
+```
+skills\jira-op  ->  %USERPROFILE%\.claude\skills\jira-op
+                ->  %USERPROFILE%\.codex\skills\jira-op
+                ->  %APPDATA%\opencode\skills\jira-op
+```
+
+Сам скил — это Markdown, на shell написан только установщик. `tools/add-site.sh`
+и `tools/jira_site.sh` тоже на bash, поэтому в родном Windows переключение
+между сайтами делается заданием `JIRA_CONFIG_FILE` и `JIRA_API_TOKEN` вручную.
+
 Перезапустите ассистента или начните новую сессию, чтобы он перечитал скилы.
 
 ## 7. Несколько сайтов Jira

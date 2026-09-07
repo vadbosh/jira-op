@@ -21,62 +21,78 @@ kind of ticket.
 
 ## Mandatory fields
 
-The create screen rejects a ticket without `summary`, `project`, `issuetype`
-and whatever else `createmeta` marks `required` — for this project that
-includes `<CF_RISKS>` and `<CF_ACCEPTANCE>`. The other rows below are the
-team's working convention, not an API constraint: the API accepts a ticket
-without them, the team does not.
+**Do not copy a field list from anywhere, including this file.** Custom fields
+are per project and per issue type: a field that is required here may not exist
+at all in the next project, and passing `--custom` for a field that does not
+exist fails the create.
 
-| Field | Value | How it is set |
-|---|---|---|
-| Summary | one line, what was done | `-s` on create |
-| Status | `In Progress` | `jira issue move` after create |
-| Assignee | <YOUR NAME> (`<ACCOUNT_ID>`) | `-a$(jira me)` on create |
-| Reporter | <YOUR NAME> | defaults to the token owner; see below |
-| Sprint | current `<SPRINT_PREFIX> N` — confirm with the user | `jira sprint add` after create |
-| Story Points | **ask the user**, no default | `--custom story-points=<N>` |
-| Potential Risks | free text, never empty | `--custom potential-risks=...` |
-| Acceptance Test | free text, never empty | `--custom acceptance-test=...` |
-
-Custom field ids for this project — the real values live in `SITE.md`:
-
-| Field | Id | Type |
-|---|---|---|
-| Story Points | `<CF_STORY_POINTS>` | number |
-| Sprint | `<CF_SPRINT>` | array |
-| Potential Risks | `<CF_RISKS>` | string |
-| Acceptance Test | `<CF_ACCEPTANCE>` | string |
-| Epic Name | `<CF_EPIC_NAME>` | string |
-| Epic Link | `<CF_EPIC_LINK>` | string |
-
-`jira issue create --custom <key>=<value>` takes the field **name**,
-lowercased with spaces as hyphens — `story-points`, `potential-risks`,
-`acceptance-test` — not the `customfield_*` id. The ids matter for REST calls
-and for reading values back.
-
-## Confirm what the create screen really requires
-
-Field configuration changes without notice. Before the first create of a
-session, and whenever a create fails on a field, ask the API which fields are
-required for the issue type:
+Three fields are required everywhere — `summary`, `project`, `issuetype`.
+Everything else comes from `createmeta`, and it is the only authority:
 
 ```bash
 set -a; . ~/.config/.jira/token.env; set +a
-EMAIL=$(jira me)
-SITE=https://example.atlassian.net
+E=$(jira me); SITE=<SITE>
 
-# issue type ids for <PROJECT>
-curl -s -u "$EMAIL:$JIRA_API_TOKEN" \
-  "$SITE/rest/api/3/issue/createmeta/<PROJECT>/issuetypes" \
-  | jq -r '.issueTypes[] | "\(.id)\t\(.name)"'
-
-# required fields for one issue type (substitute the id)
-curl -s -u "$EMAIL:$JIRA_API_TOKEN" \
+curl -s -u "$E:$JIRA_API_TOKEN" \
   "$SITE/rest/api/3/issue/createmeta/<PROJECT>/issuetypes/<TYPE_ID>" \
   | jq -r '.fields[] | select(.required) | "\(.fieldId)\t\(.name)"'
 ```
 
-The list this returns wins over the table above.
+### Generate the flags instead of typing them
+
+`--custom` takes the field **name**, lowercased with spaces replaced by
+hyphens. Deriving that by hand is where the typos live, so let the API write
+the flags:
+
+```bash
+curl -s -u "$E:$JIRA_API_TOKEN" \
+  "$SITE/rest/api/3/issue/createmeta/<PROJECT>/issuetypes/<TYPE_ID>" \
+| jq -r '.fields[] | select(.required) | select(.fieldId|startswith("customfield_"))
+    | "  --custom \(.name|ascii_downcase|gsub(" ";"-"))=\"...\"   # \(.fieldId), \(.schema.custom|split(":")|last)"'
+```
+
+On the project this was written against it prints two lines; on the neighbouring
+issue type in the *same* project it prints two entirely different ones. That is
+the reason this is a command and not a table.
+
+### A required field is not always free text
+
+The generator prints the field's type after the id. It decides how the value is
+written:
+
+- `textfield`, `float`, `datepicker` — pass the value as it is.
+- `select`, `radiobuttons`, `multiselect` — only a listed option is accepted.
+  Ask for the options, and never invent one:
+  ```bash
+  curl -s -u "$E:$JIRA_API_TOKEN" \
+    "$SITE/rest/api/3/issue/createmeta/<PROJECT>/issuetypes/<TYPE_ID>" \
+  | jq -r '.fields[] | select(.required) | select(.allowedValues)
+      | "\(.name): " + ([.allowedValues[] | .value // .name] | join(", "))'
+  ```
+- `textarea` — may be stored as an ADF document rather than a string. `create`
+  handles it; a later **edit** does not, see the section on editing below.
+
+When a required field has no sensible value from the work being recorded, ask
+the user. Do not fill it with `N/A` to get past the create screen.
+
+### Team convention on top of the API
+
+These are not API-required, and the create still succeeds without them — the
+team is what requires them. Values live in `SITE.md`.
+
+| Field | Value | How it is set |
+|---|---|---|
+| Summary | one line, what was done | `-s` on create |
+| Status | `<STATUS_IN_PROGRESS>` | `jira issue move` after create |
+| Assignee | the token owner | `-a$(jira me)` on create |
+| Reporter | the token owner | automatic; see below |
+| Sprint | current `<SPRINT_PREFIX> N` — confirm with the user | `jira sprint add` after create |
+| Story Points | **ask the user**, no default | `--custom story-points=<N>` |
+
+`Story Points` is itself a custom field and is not guaranteed to exist either.
+If the generator above does not list it and `jira issue create --custom
+story-points=…` is rejected, the project does not use estimation — say so and
+drop the flag rather than hunting for an id.
 
 ## Procedure
 
@@ -134,9 +150,12 @@ jira issue create --no-input \
   -a"$(jira me)" \
   -b"$(cat /tmp/op_body.md)" \
   --custom story-points=<N> \
-  --custom potential-risks="<risks>" \
-  --custom acceptance-test="<how it is verified>"
+  <the --custom lines the generator printed, filled in>
 ```
+
+Nothing in that command is fixed except the first four lines. The `--custom`
+flags are whatever `createmeta` said is required for **this** issue type, and
+they change with the type.
 
 Keep the returned key. If the command times out, **read before retrying** —
 the ticket may already exist.
@@ -218,22 +237,30 @@ curl -s -X PUT -u "$EMAIL:$JIRA_API_TOKEN" \
   "$SITE/rest/api/3/issue/PROJ-123"
 ```
 
-## Editing Potential Risks / Acceptance Test on an existing ticket
+## Editing a textarea custom field on an existing ticket
 
-Both are `textarea` custom fields (`customfieldtypes:textarea`), and Jira
-Cloud may store them as ADF documents rather than plain strings:
+Check the storage format before writing — it is per field, and it decides
+which API to use:
+
+```bash
+curl -s -u "$E:$JIRA_API_TOKEN" "$SITE/rest/api/3/issue/<KEY>?fields=<FIELD_ID>" \
+  | jq -r '.fields.<FIELD_ID> | type'
+```
+
+`string` — the v3 API accepts a plain string. `object` — it is an ADF document,
+and v3 rejects a plain string for it. Example of what `object` looks like:
 
 ```json
 {"<CF_RISKS>":{"type":"doc","version":1,
  "content":[{"type":"paragraph","content":[{"type":"text","text":"None"}]}]}}
 ```
 
-`editmeta` reports `operations: ["set"]` for both, so an edit overwrites the
-whole value. Read the current value first and show it to the user — there is
+`editmeta` says what an edit may do to the field. `operations: ["set"]` means
+an edit overwrites the whole value. Read the current value first and show it to the user — there is
 no undo.
 
-The straightforward path is the **v2 API**, which accepts plain text for these
-fields and does the ADF conversion server-side:
+For an ADF field the straightforward path is the **v2 API**, which accepts
+plain text and does the conversion server-side:
 
 ```bash
 set -a; . ~/.config/.jira/token.env; set +a
@@ -260,17 +287,26 @@ curl -s -u "$E:$JIRA_API_TOKEN" \
   | jq -r '.fields | to_entries[] | "\(.key): \([.value | .. | .text? // empty] | join(" "))"'
 ```
 
-`jira issue edit <KEY> --custom potential-risks="..."` exists and is shorter,
-but it sends a plain string to the v3 endpoint, which rejects ADF fields. Try
-it only if the REST path is unavailable, and check the exit status.
+`jira issue edit <KEY> --custom <field-name>="..."` exists and is shorter, but
+it sends a plain string to the v3 endpoint, which rejects ADF fields. It works
+for a `string` field and fails for an `object` one — check the exit status
+rather than assuming.
 
 Add `--skip-notify` to `jira issue edit`, or accept that every watcher gets a
 mail for a field cleanup.
 
 ## Values that are never empty
 
-`Potential Risks` and `Acceptance Test` are mandatory on this screen, so a
-placeholder is tempting. Do not write `N/A`. If there is genuinely no risk,
-say what makes it low — "config-only change, no runtime path touched" — and
-for the acceptance test, name the command or the observation that proves the
-work: what was run, where, and what it printed.
+A required field the create screen will not let past is exactly where a
+placeholder is tempting. Do not write `N/A`.
+
+Two shapes recur across projects, whatever the field is called:
+
+- **a risk field.** If the risk is genuinely low, say what makes it low —
+  "config-only change, no runtime path touched" — not "none".
+- **an acceptance or test field.** Name the command or the observation that
+  proves the work: what was run, where, and what it printed. "Works" is not an
+  acceptance criterion.
+
+Both are read months later by someone deciding whether the ticket can be
+closed. `N/A` makes that decision impossible and the field pointless.

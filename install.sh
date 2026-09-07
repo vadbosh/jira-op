@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Install the jira-op skill into every coding assistant found under $HOME.
 #
+# Linux and macOS. On Windows use WSL or Git Bash, or copy skills/jira-op by
+# hand into the assistant's skills directory — the script only copies files,
+# there is nothing platform-specific about the skill itself.
+#
 #   ./install.sh                  install into every assistant detected
 #   ./install.sh --dry-run        print what would happen, change nothing
 #   ./install.sh --skills-dir D   install into D instead of auto-detecting
@@ -22,7 +26,7 @@ while [ $# -gt 0 ]; do
 	case "$1" in
 		--dry-run)    DRY_RUN=1 ;;
 		--skills-dir) shift; SKILLS_DIR="${1:?--skills-dir needs a path}" ;;
-		-h|--help)    sed -n '2,12p' "${BASH_SOURCE[0]}"; exit 0 ;;
+		-h|--help)    sed -n '2,14p' "${BASH_SOURCE[0]}"; exit 0 ;;
 		*)            echo "unknown argument: $1" >&2; exit 2 ;;
 	esac
 	shift

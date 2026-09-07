@@ -56,12 +56,18 @@ often required by the team and optional to the API.
 
 | Name used in the skill | Field id | Field name |
 |---|---|---|
-| `<CF_STORY_POINTS>` | `customfield_10016` | Story Points |
-| `<CF_SPRINT>` | `customfield_10020` | Sprint |
+| `<CF_STORY_POINTS>` | `customfield_…` | Story Points, if the project estimates |
+| `<CF_SPRINT>` | `customfield_…` | Sprint, if the board is scrum |
 | `<CF_RISKS>` | `customfield_…` | your project's risk field, if it has one |
 | `<CF_ACCEPTANCE>` | `customfield_…` | your project's acceptance field, if it has one |
 | `<CF_EPIC_LINK>` | `customfield_…` | Epic Link, when the project is company-managed |
 | `<CF_END_DATE>` | `customfield_…` | End Date, if used |
+
+Ids are **never** transferable between sites, and often not between projects on
+the same site — `Story Points` is `customfield_10016` on one Jira and
+`customfield_10004` on another. Read them, do not copy them. A project may also
+require no custom field at all, in which case the create carries no `--custom`
+flag and the rows above stay empty.
 
 `jira issue create --custom` takes the field **name**, lowercased with spaces
 replaced by hyphens — `story-points`. The `customfield_*` id is what REST
