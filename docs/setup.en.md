@@ -199,14 +199,20 @@ fails, the config is removed and no token is written.
 ./tools/add-site.sh --list      # what is registered
 ```
 
-Switch with the shell function:
+Switch with the shell function. `install.sh` puts a copy under `$HOME` —
+source **that**, never the clone: an rc file pointing into a checkout breaks
+the day the checkout moves.
 
 ```bash
-. /path/to/jira-op/tools/jira_site.sh    # or source it from ~/.bash_aliases
+. ~/.local/share/jira-op/jira_site.sh    # add this to ~/.bashrc or ~/.zshrc
 
 jira_site acme      # ~/.config/.jira/acme.yml + acme.token.env
-jira_site wl        # back to the default .config.yml + token.env
+jira_site default   # back to .config.yml + token.env
 ```
+
+It prints the config and env-file paths it loaded, then your login. A switch
+that prints nothing cannot be told from a no-op — and a config from one site
+with a token from another is exactly what `401` looks like.
 
 It prints the login, and that is the proof the switch happened. The effect is
 limited to the current shell.

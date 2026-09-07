@@ -220,8 +220,9 @@ placeholders and work before `SITE.md` exists.
 
 jira-cli reads one config file and one token, and they are separate mechanisms —
 a config from one site with a token from another returns `401`, which reads as
-an expired token rather than a wrong pairing. `jira_site` in
-[`tools/jira_site.sh`](tools/jira_site.sh) switches the pair in one step;
+an expired token rather than a wrong pairing. `jira_site` — installed to
+`~/.local/share/jira-op/jira_site.sh`, source that and not the clone —
+switches the pair in one step;
 [`tools/add-site.sh`](tools/add-site.sh) registers a new site.
 
 ```bash

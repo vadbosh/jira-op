@@ -136,6 +136,24 @@ if [ "$DRY_RUN" = 0 ]; then
 	done
 fi
 
+# The shell function is sourced from a shell rc file, so it cannot live at the
+# path of a clone: move or delete the clone and the rc file breaks. Install a
+# copy under $HOME and let the rc file point there.
+SHELL_LIB="${XDG_DATA_HOME:-$HOME/.local/share}/jira-op"
+if [ "$DRY_RUN" = 1 ]; then
+	printf '\n  would: cp %s/tools/jira_site.sh %s/\n' "$SRC" "$SHELL_LIB"
+else
+	mkdir -p "$SHELL_LIB"
+	cp "$SRC/tools/jira_site.sh" "$SHELL_LIB/jira_site.sh"
+	printf '\nshell helper: %s/jira_site.sh\n' "$SHELL_LIB"
+	if grep -rqs "jira-op/jira_site.sh" "$HOME/.bashrc" "$HOME/.bash_aliases" "$HOME/.zshrc" 2>/dev/null; then
+		printf '  already sourced from your shell config\n'
+	else
+		printf '  add this line to ~/.bashrc, ~/.zshrc or ~/.bash_aliases:\n'
+		printf '    . %s/jira_site.sh\n' "$SHELL_LIB"
+	fi
+fi
+
 cat <<EOF
 
 Next:
@@ -144,5 +162,5 @@ Next:
   3. site values               $SRC/tools/site-probe.sh --write
                                (re-run when a create or a transition fails)
   4. several sites             $SRC/tools/add-site.sh <name>
-                               . $SRC/tools/jira_site.sh
+                               . $SHELL_LIB/jira_site.sh
 EOF

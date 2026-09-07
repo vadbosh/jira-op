@@ -76,7 +76,7 @@ weekly-update-2026-08-31_2026-09-06.txt
 
 ```bash
 tools/add-site.sh acme     # спросит токен, запустит init, создаст SITE.acme.md
-jira_site acme             # переключиться  (нужно: . tools/jira_site.sh)
+jira_site acme             # переключиться  (нужно: . ~/.local/share/jira-op/jira_site.sh)
 jira_site default          # вернуться
 ```
 

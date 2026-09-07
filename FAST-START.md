@@ -74,7 +74,7 @@ only. `To Do` tickets never appear.
 
 ```bash
 tools/add-site.sh acme     # asks for the token, runs init, writes SITE.acme.md
-jira_site acme             # switch    (needs: . tools/jira_site.sh)
+jira_site acme             # switch  (needs: . ~/.local/share/jira-op/jira_site.sh)
 jira_site default          # switch back
 ```
 
