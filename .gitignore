@@ -1,0 +1,26 @@
+# Nothing from ~/.config/.jira belongs here. Named explicitly so a stray copy
+# during debugging cannot be committed by accident.
+*.token.env
+token.env
+.config.yml
+*.yml.bak.*
+
+# Timestamped copies left by install.sh and by anyone editing a live file.
+# Recoverable from history by definition, and untracked they hide the one thing
+# `git status` is for — a change nobody meant to make.
+*.bak.*
+
+# Session memory written by assistant tooling. Local, and none of a public
+# repository's business.
+.memsearch/
+.claude/
+.codex/
+
+# Editors and OS noise
+*.swp
+*~
+.DS_Store
+
+# Your filled-in site values. The template SITE.example.md is committed;
+# the real one is yours and stays here.
+skills/jira-op/SITE.md
