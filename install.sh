@@ -18,6 +18,10 @@ set -euo pipefail
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_SRC="$SRC/skills/jira-op"
 STAMP="$(date +%Y%m%d-%H%M%S)"
+# Backups go OUTSIDE any skills directory. A copy left as
+# <skills>/jira-op.bak.<stamp> is itself loaded as a skill by every assistant
+# that scans the directory — a duplicate of this one, under a nonsense name.
+BACKUP_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/jira-op-backups"
 
 DRY_RUN=0
 SKILLS_DIR=""
@@ -63,12 +67,42 @@ for dir in "${targets[@]}"; do
 	dest="$dir/jira-op"
 	printf '%s\n' "$dest"
 	run mkdir -p "$dir"
+
+	# SITE*.md describes the user's Jira and is not in this repository. It lives
+	# inside the skill directory because that is where the skill reads it, so a
+	# plain replace would delete it — carry it across instead.
+	keep=""
+	if [ -e "$dest" ]; then
+		for f in "$dest"/SITE.md "$dest"/SITE.*.md; do
+			[ -e "$f" ] || continue
+			case "$(basename "$f")" in SITE.example.md) continue ;; esac
+			keep="$keep $f"
+		done
+	fi
+	if [ -n "$keep" ] && [ "$DRY_RUN" = 0 ]; then
+		tmpkeep="$(mktemp -d)"
+		# shellcheck disable=SC2086
+		cp $keep "$tmpkeep/"
+	fi
+
 	if [ -e "$dest" ] && ! diff -rq "$SKILL_SRC" "$dest" >/dev/null 2>&1; then
-		printf '  differs from source — keeping a copy\n'
-		run cp -r "$dest" "$dest.bak.$STAMP"
+		bak="$BACKUP_DIR/$(basename "$(dirname "$dir")")-jira-op.bak.$STAMP"
+		printf '  differs from source — copy kept at %s\n' "$bak"
+		run mkdir -p "$BACKUP_DIR"
+		run cp -r "$dest" "$bak"
 	fi
 	run rm -rf "$dest"
 	run cp -r "$SKILL_SRC" "$dest"
+
+	if [ -n "$keep" ]; then
+		if [ "$DRY_RUN" = 1 ]; then
+			printf '  would: preserve%s\n' "$keep"
+		else
+			cp "$tmpkeep"/* "$dest/"
+			rm -rf "$tmpkeep"
+			printf '  preserved:%s\n' "$(printf '%s' "$keep" | tr ' ' '\n' | sed 's|.*/| |' | tr -d '\n')"
+		fi
+	fi
 	printf '  installed\n'
 done
 

@@ -12,7 +12,8 @@
 # site with a token from another returns 401, which reads as an expired token
 # rather than as a wrong pairing.
 #
-#   jira_site wl        the default pair — .config.yml + token.env
+#   jira_site default   the default pair — .config.yml + token.env
+#                       ('wl' is accepted as a synonym)
 #   jira_site acme      ~/.config/.jira/acme.yml + acme.token.env
 #
 # It prints the login, and that is the proof the switch happened. The effect is
@@ -22,8 +23,8 @@
 # Register a new site with add-site.sh; never hand-write the config.
 
 jira_site() {
-	local d=~/.config/.jira name=${1:?usage: jira_site <wl|site-name>}
-	if [ "$name" = wl ]; then
+	local d=~/.config/.jira name=${1:?usage: jira_site <default|site-name>}
+	if [ "$name" = default ] || [ "$name" = wl ]; then
 		unset JIRA_CONFIG_FILE
 		set -a; . "$d/token.env" || return 1; set +a
 	else

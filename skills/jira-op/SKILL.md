@@ -11,10 +11,26 @@ Operational Jira access for the `<PROJECT>` project on
 
 ## Workspace facts
 
-**Read `SITE.md` next to this file first.** Every `<PLACEHOLDER>` below is
-defined there, together with the command that produced it. No `SITE.md` — copy
-`SITE.example.md` to `SITE.md`, fill it from the live API, and say so before
-running anything that writes.
+**Read the site file next to this one first.** Every `<PLACEHOLDER>` below is
+defined there, together with the command that produced it.
+
+Which file depends on the site the CLI is pointed at — one per site, because
+field ids, issue types and statuses are not shared between them:
+
+| `JIRA_CONFIG_FILE` | File to read |
+|---|---|
+| unset (the default `~/.config/.jira/.config.yml`) | `SITE.md` |
+| `~/.config/.jira/<name>.yml` | `SITE.<name>.md` |
+
+Missing for the active site — generate it, do not hand-write it:
+
+```bash
+tools/site-probe.sh --write        # from the repository this skill came from
+```
+
+It reads the config jira-cli already wrote plus the live API, and covers every
+issue type in the project. Until it exists, say so before running anything that
+writes.
 
 | Item | Value |
 |---|---|
