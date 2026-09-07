@@ -6,15 +6,26 @@ One screen. Full guide: [docs/setup.en.md](docs/setup.en.md) ·
 ## Once
 
 ```bash
-./install.sh                  # skill into every assistant found
-jira init                     # Cloud, site URL, login email, project key, board
 umask 077; read -r -s -p 'token: ' T \
   && printf 'JIRA_API_TOKEN=%s\n' "$T" > ~/.config/.jira/token.env && unset T
-tools/site-probe.sh --write   # reads your project's real field ids
+set -a; . ~/.config/.jira/token.env; set +a
+jira init                     # Cloud, site URL, login email, project key, board
+./install.sh                  # skill into every assistant found
 jira me                       # prints your login = it works
 ```
 
-Export the token **before** `jira init` — it authenticates while it asks.
+The token goes first: `jira init` authenticates while it asks its questions,
+and without it in the environment it fails with `401` halfway through.
+
+**You do not run the site probe.** `install.sh` reads your project's real field
+ids by itself when no site file exists yet, and `add-site.sh` does the same for
+a new site. `tools/site-probe.sh --write` is only for later — when Jira's
+configuration changed under you:
+
+```bash
+tools/site-probe.sh --all --check   # did anything change? writes nothing
+tools/site-probe.sh --all --write   # refresh every site
+```
 
 ## Then just talk to the assistant
 

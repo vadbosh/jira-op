@@ -6,15 +6,26 @@
 ## Один раз
 
 ```bash
-./install.sh                  # скил во все найденные ассистенты
-jira init                     # Cloud, адрес сайта, login email, ключ проекта, доска
 umask 077; read -r -s -p 'token: ' T \
   && printf 'JIRA_API_TOKEN=%s\n' "$T" > ~/.config/.jira/token.env && unset T
-tools/site-probe.sh --write   # считает настоящие id полей вашего проекта
+set -a; . ~/.config/.jira/token.env; set +a
+jira init                     # Cloud, адрес сайта, login email, ключ проекта, доска
+./install.sh                  # скил во все найденные ассистенты
 jira me                       # печатает ваш login — значит работает
 ```
 
-Токен экспортируйте **до** `jira init`: он аутентифицируется по ходу вопросов.
+Токен идёт первым: `jira init` аутентифицируется по ходу своих вопросов и без
+него падает с `401` на середине.
+
+**Probe запускать не нужно.** `install.sh` сам считывает настоящие id полей
+вашего проекта, когда файла сайта ещё нет; `add-site.sh` делает то же для
+нового сайта. `tools/site-probe.sh --write` нужен позже — когда конфигурацию
+в Jira поменяли:
+
+```bash
+tools/site-probe.sh --all --check   # что-то изменилось? ничего не пишет
+tools/site-probe.sh --all --write   # обновить все сайты
+```
 
 ## Дальше просто говорите ассистенту
 
