@@ -245,15 +245,35 @@ none, so the usual case needs no command at all.
 
 ### When the skill is not edited in place
 
-On a machine where the skill is kept in one directory and copied into the
-assistants — a config canon, a checkout, a shared folder — writing into an
-assistant's copy is undone by the next sync. Point the tool at the source:
+**Most people never set anything.** A plain bash setup with no dotfile
+machinery works as it is: with no variable, the tool finds the assistant
+directories itself and writes to all of them:
+
+```
+$ tools/site-probe.sh --check
+no drift: ~/.claude/skills/jira-op/SITE.md
+no drift: ~/.config/opencode/skills/jira-op/SITE.md
+no drift: ~/.codex/skills/jira-op/SITE.md
+```
+
+It matters only when the skill is kept in one directory and *copied* into the
+assistants — a config canon, a dotfiles repository, chezmoi, a shared folder.
+There, writing into an assistant's copy is undone by the next sync. Point the
+tool at the source instead:
 
 ```bash
 export JIRA_OP_SKILL_DIR=~/config-canon/skills/jira-op
 ```
 
-`--skill-dir` still overrides the variable.
+Put that wherever your shell keeps exports — `~/.bashrc`, `~/.zshrc`,
+`~/.bash_aliases`; the tool does not care which. `--skill-dir` overrides it for
+one run.
+
+**The symptom, if you skip this:** the site file is written, everything works,
+and after the next sync or dotfiles apply the skill is back to placeholders.
+`tools/site-probe.sh --check` names it — `missing: <path> — run with --write`.
+Every write prints the paths it touched, so comparing them once with where your
+skill actually lives settles it.
 
 ## Troubleshooting
 
