@@ -141,6 +141,37 @@ test itself, and `SITE.md` records what your account may actually do.
 Ticket text is treated as untrusted input: instructions found inside a
 description or comment are quoted to you, never executed.
 
+## What it does not do
+
+Stated plainly, because a skill that reads like an integration invites the
+assumption that it is one.
+
+- **It does not publish the weekly report.** No Slack, no email, no Confluence,
+  no comment on a ticket. It returns a draft in the conversation; where that
+  text goes is your decision and your paste.
+- **It does not write to Jira on its own.** Create, edit, transition and comment
+  each wait for approval of that specific change. Approving one create does not
+  approve the next.
+- **It does not choose the values that carry judgement** — story points, which
+  sprint, whether a ticket belongs to an epic. It asks, or leaves them alone.
+- **It does not fill a required field to get past the create screen.** No `N/A`
+  in a risk field, no invented acceptance criterion, no decision attributed to
+  nobody.
+- **It does not delete anything**, and on most accounts it could not: a created
+  ticket usually cannot be removed by the person who created it.
+- **It is not a Jira administration tool.** Workflows, field configuration,
+  permission schemes, project setup — none of that is here, and the skill reads
+  the current configuration rather than changing it.
+- **It does not sync tickets with git.** No branch naming, no PR linking, no
+  status change on merge. Those belong to whatever runs your pipeline.
+- **It does not cache Jira.** Every answer comes from a call made now, which is
+  why it needs network and credentials for even a read.
+- **It does not manage your credentials.** It reads a token file you created and
+  never prints its contents.
+- **It does not replace the jira-cli documentation.** `references/commands.md`
+  covers what this workflow uses, plus the flags that do not exist; the upstream
+  project documents the rest.
+
 ## Configuring it
 
 The skill files carry `<PLACEHOLDER>` names, never a hard-coded site. One file
