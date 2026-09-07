@@ -106,7 +106,11 @@ fi
 # The skill needs a site file for this site before it can write anything, and
 # generating it is the same read-only pass site-probe.sh does. Best effort:
 # a failure here costs one manual command, not the registration.
-PROBE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/site-probe.sh"
+# Resolve through a symlink: this script is often linked from ~/.config/.jira,
+# and dirname of the link points at the link's directory, not at tools/.
+SELF="${BASH_SOURCE[0]}"
+command -v readlink >/dev/null && SELF="$(readlink -f "$SELF" 2>/dev/null || printf '%s' "${BASH_SOURCE[0]}")"
+PROBE="$(cd "$(dirname "$SELF")" && pwd)/site-probe.sh"
 if [ -x "$PROBE" ]; then
 	printf '\nGenerating the site file for the skill...\n'
 	if "$PROBE" --site "$NAME" --write; then
