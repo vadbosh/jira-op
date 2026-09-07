@@ -24,7 +24,7 @@ die() { printf '%s\n' "$*" >&2; exit 1; }
 
 if [ "$NAME" = --list ] || [ "$NAME" = -l ]; then
 	printf 'registered sites:\n'
-	[ -e "$DIR/.config.yml" ] && printf '  wl\t%s\n' "$DIR/.config.yml"
+	[ -e "$DIR/.config.yml" ] && printf '  default\t%s\n' "$DIR/.config.yml"
 	for f in "$DIR"/*.yml; do
 		[ -e "$f" ] || continue
 		s=$(basename "$f" .yml)
@@ -113,11 +113,14 @@ command -v readlink >/dev/null && SELF="$(readlink -f "$SELF" 2>/dev/null || pri
 PROBE="$(cd "$(dirname "$SELF")" && pwd)/site-probe.sh"
 if [ -x "$PROBE" ]; then
 	printf '\nGenerating the site file for the skill...\n'
-	if "$PROBE" --site "$NAME" --write; then
-		:
-	else
+	if ! "$PROBE" --site "$NAME" --write; then
 		printf 'site file not generated — run it yourself:\n  %s --site %s --write\n' "$PROBE" "$NAME" >&2
 	fi
+else
+	# Never skip silently: a missing probe means the skill keeps placeholders
+	# for this site, and nothing else would say so.
+	printf '\nsite-probe.sh not found next to this script (%s).\n' "$PROBE" >&2
+	printf 'The skill has no values for %s yet. Run the probe from the repository:\n  tools/site-probe.sh --site %s --write\n' "$NAME" "$NAME" >&2
 fi
 
 cat <<EOF

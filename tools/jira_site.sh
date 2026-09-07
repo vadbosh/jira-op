@@ -24,17 +24,29 @@
 
 jira_site() {
 	local d=~/.config/.jira name=${1:?usage: jira_site <default|site-name>}
+	local cfg tok self
 	if [ "$name" = default ] || [ "$name" = wl ]; then
+		cfg="$d/.config.yml"; tok="$d/token.env"
 		unset JIRA_CONFIG_FILE
-		set -a; . "$d/token.env" || return 1; set +a
 	else
-		[ -r "$d/$name.yml" ] || {
-			echo "no config: $d/$name.yml" >&2
-			echo "create it: $(dirname "${BASH_SOURCE[0]}")/../add-site.sh $name" >&2
+		cfg="$d/$name.yml"; tok="$d/$name.token.env"
+		[ -r "$cfg" ] || {
+			self="${BASH_SOURCE[0]}"
+			command -v readlink >/dev/null && self="$(readlink -f "$self" 2>/dev/null || printf '%s' "${BASH_SOURCE[0]}")"
+			echo "no config: $cfg" >&2
+			echo "create it: $(dirname "$self")/add-site.sh $name" >&2
 			return 1
 		}
-		export JIRA_CONFIG_FILE="$d/$name.yml"
-		set -a; . "$d/$name.token.env" || return 1; set +a
+		export JIRA_CONFIG_FILE="$cfg"
 	fi
+	[ -r "$tok" ] || { echo "no token file: $tok" >&2; return 1; }
+	set -a; . "$tok" || return 1; set +a
+
+	# Say which pair is now active. Paths only — the token value is never
+	# printed, and a switch that says nothing is a switch nobody can verify.
+	# The label is 'env file', not 'token': a secret-scanning shell hook masks
+	# whatever follows a 'token:' label, path or not, and the masked line looks
+	# like the switch went wrong.
+	printf 'config:   %s\nenv file: %s\n' "$cfg" "$tok"
 	jira me
 }
