@@ -138,8 +138,10 @@ MYSELF="$(api /rest/api/3/myself)"
 ACCOUNT_ID="$(printf '%s' "$MYSELF" | jq -r '.accountId')"
 DISPLAY_NAME="$(printf '%s' "$MYSELF" | jq -r '.displayName')"
 
-# A recent issue, used to read the workflow's transition names.
-SAMPLE="$(jira issue list -p "$PROJECT" --plain --no-headers --columns key --paginate 1 2>/dev/null | awk 'NR==1{print $1}')"
+# One issue, used to read the workflow's transition names. Deliberately the
+# OLDEST one: the newest changes whenever anybody files a ticket, and --check
+# then reports drift every week over a sample key that means nothing.
+SAMPLE="$(jira issue list -p "$PROJECT" --order-by created --reverse --plain --no-headers --columns key --paginate 1 2>/dev/null | awk 'NR==1{print $1}')"
 
 # Every list below is sorted explicitly. The API returns object keys and array
 # members in no guaranteed order, and an unsorted list makes --check report
