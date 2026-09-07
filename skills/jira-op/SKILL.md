@@ -22,15 +22,20 @@ field ids, issue types and statuses are not shared between them:
 | unset (the default `~/.config/.jira/.config.yml`) | `SITE.md` |
 | `~/.config/.jira/<name>.yml` | `SITE.<name>.md` |
 
-Missing for the active site — generate it, do not hand-write it:
+Missing for the active site — generate it, do not hand-write it and do not
+guess the values:
 
 ```bash
 tools/site-probe.sh --write        # from the repository this skill came from
 ```
 
 It reads the config jira-cli already wrote plus the live API, and covers every
-issue type in the project. Until it exists, say so before running anything that
-writes.
+issue type in the project. Until the file exists, say so before running
+anything that writes.
+
+The repository also carries `SITE.example.md`, which documents every value with
+the command behind it. It is deliberately **not** installed here: its sample
+values look like real configuration, and next to the real file that is a trap.
 
 | Item | Value |
 |---|---|

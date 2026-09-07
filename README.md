@@ -41,7 +41,7 @@ This skill encodes the answers to both, and the traps found while getting there.
 | `references/investigate.md` | read-only investigation of a ticket before acting |
 | `references/ticket-writing.md` | writing a ticket someone else can execute |
 | `references/commands.md` | jira-cli reference, with the flags that do not exist |
-| `SITE.example.md` | the template for your site's values, with the command behind each one |
+| `SITE.example.md` | documents every site value with the command behind it — repository only, never installed |
 | `tools/site-probe.sh` | generates that file from the live API — one per Jira site |
 
 `investigate.md` and `ticket-writing.md` carry no project identifiers and work
@@ -178,8 +178,7 @@ The skill files carry `<PLACEHOLDER>` names, never a hard-coded site. One file
 resolves them:
 
 ```bash
-cd ~/.claude/skills/jira-op          # or wherever install.sh put it
-cp SITE.example.md SITE.md
+tools/site-probe.sh --write          # the normal path
 ```
 
 Or let the probe write it, which is the normal path — `install.sh` and
@@ -192,9 +191,11 @@ tools/site-probe.sh --all --check    # drift report, writes nothing
 ```
 
 It reads the config jira-cli already wrote plus a read-only pass over the API,
-and covers every issue type in the project. `SITE.example.md` documents the
-same values by hand, with the command behind each one, for anyone who prefers
-to fill them deliberately.
+and covers every issue type in the project. `SITE.example.md` in this
+repository documents the same values with the command behind each one, for
+anyone who prefers to fill them deliberately — `install.sh` does not copy it
+into the skill, because sample values sitting next to real ones under identical
+headings get read as configuration.
 
 **One file per site**: `SITE.md` for the default config, `SITE.<name>.md` for
 `~/.config/.jira/<name>.yml`. The skill picks by `JIRA_CONFIG_FILE`, so three

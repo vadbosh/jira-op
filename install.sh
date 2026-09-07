@@ -94,6 +94,12 @@ for dir in "${targets[@]}"; do
 	run rm -rf "$dest"
 	run cp -r "$SKILL_SRC" "$dest"
 
+	# SITE.example.md is documentation for this repository, not for the skill.
+	# Installed, it sits beside the real SITE.md with identical headings and
+	# plausible sample values — PROJ, Task, 10001, Done — and is read as
+	# configuration. It stays in the clone.
+	run rm -f "$dest/SITE.example.md"
+
 	if [ -n "$keep" ]; then
 		if [ "$DRY_RUN" = 1 ]; then
 			printf '  would: preserve%s\n' "$keep"
