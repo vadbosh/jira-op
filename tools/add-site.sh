@@ -103,12 +103,25 @@ else
   $TOK"
 fi
 
+# The skill needs a site file for this site before it can write anything, and
+# generating it is the same read-only pass site-probe.sh does. Best effort:
+# a failure here costs one manual command, not the registration.
+PROBE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/site-probe.sh"
+if [ -x "$PROBE" ]; then
+	printf '\nGenerating the site file for the skill...\n'
+	if "$PROBE" --site "$NAME" --write; then
+		:
+	else
+		printf 'site file not generated — run it yourself:\n  %s --site %s --write\n' "$PROBE" "$NAME" >&2
+	fi
+fi
+
 cat <<EOF
 
 Done. Use it from any shell:
 
   jira_site $NAME      # switch to this site
-  jira_site wl         # back to the default one
+  jira_site default    # back to the default one ('wl' also accepted)
 
-Both files stay out of git and out of any assistant session.
+The config and the token stay out of git and out of any assistant session.
 EOF

@@ -106,11 +106,35 @@ for dir in "${targets[@]}"; do
 	printf '  installed\n'
 done
 
+# A skill with no site file for the active site cannot write anything, so
+# generate one when none exists yet. Best effort: jira-cli may not be
+# configured at this point, which is fine — the message says what to run.
+have_site=0
+for dir in "${targets[@]}"; do
+	for f in "$dir/jira-op"/SITE.md "$dir/jira-op"/SITE.*.md; do
+		[ -e "$f" ] || continue
+		case "$(basename "$f")" in SITE.example.md) continue ;; esac
+		have_site=1
+	done
+done
+
+if [ "$have_site" = 0 ] && [ "$DRY_RUN" = 0 ]; then
+	printf '\nNo site file yet — probing the configured Jira...\n'
+	if "$SRC/tools/site-probe.sh" --write 2>/dev/null; then
+		:
+	else
+		printf 'not generated (jira-cli not configured yet?). After jira init, run:\n  %s --write\n' \
+		       "$SRC/tools/site-probe.sh"
+	fi
+fi
+
 cat <<EOF
 
 Next:
   1. jira init                 configure jira-cli for your site
   2. store the token           see docs/setup.en.md, or docs/setup.ru.md
-  3. optional, several sites:  . $SRC/tools/jira_site.sh
-                               $SRC/tools/add-site.sh <name>
+  3. site values               $SRC/tools/site-probe.sh --write
+                               (re-run when a create or a transition fails)
+  4. several sites             $SRC/tools/add-site.sh <name>
+                               . $SRC/tools/jira_site.sh
 EOF

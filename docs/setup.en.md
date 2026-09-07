@@ -10,6 +10,7 @@ skill drives jira-cli; if jira-cli is not configured, nothing else here works.
 - [5. Verify](#5-verify)
 - [6. Install the skill](#6-install-the-skill)
 - [7. More than one Jira site](#7-more-than-one-jira-site)
+- [Keeping the site files current](#keeping-the-site-files-current)
 - [Troubleshooting](#troubleshooting)
 - [Removing it](#removing-it)
 
@@ -213,6 +214,46 @@ limited to the current shell.
 **Everything project-specific in the skill stops applying on another site** —
 issue type, custom field ids, statuses, board number. Re-read `createmeta`
 before writing anything there; see *Adapting it to your Jira* in the README.
+
+## Keeping the site files current
+
+`SITE.md` is a snapshot of a Jira project's configuration, and Jira changes
+without telling anyone. Three things keep it honest:
+
+```bash
+tools/site-probe.sh --write          # regenerate for the current site
+tools/site-probe.sh --all --write    # every registered site
+tools/site-probe.sh --all --check    # report drift, write nothing
+```
+
+`--check` exits `3` when the live API disagrees with what is on disk, so it
+works as a cron job. **Nothing installs one for you** — a clone should not
+touch your crontab. Add it yourself if you want it, adjusting the paths:
+
+```cron
+# weekly, read-only; exit 3 and a diff in the log when a project changed
+23 9 * * 1 PATH=/usr/local/bin:/usr/bin:/bin HOME=/home/you \
+  /path/to/jira-op/tools/site-probe.sh --all --check \
+  >> /home/you/.local/state/jira-op/site-check.log 2>&1
+```
+
+cron runs with a minimal environment: set `PATH` so `jira` and `jq` are found,
+and `HOME` so the config and token files resolve.
+
+`add-site.sh` and `install.sh` generate the file on their own when there is
+none, so the usual case needs no command at all.
+
+### When the skill is not edited in place
+
+On a machine where the skill is kept in one directory and copied into the
+assistants — a config canon, a checkout, a shared folder — writing into an
+assistant's copy is undone by the next sync. Point the tool at the source:
+
+```bash
+export JIRA_OP_SKILL_DIR=~/config-canon/skills/jira-op
+```
+
+`--skill-dir` still overrides the variable.
 
 ## Troubleshooting
 

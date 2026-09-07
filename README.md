@@ -42,6 +42,7 @@ This skill encodes the answers to both, and the traps found while getting there.
 | `references/ticket-writing.md` | writing a ticket someone else can execute |
 | `references/commands.md` | jira-cli reference, with the flags that do not exist |
 | `SITE.example.md` | the template for your site's values, with the command behind each one |
+| `tools/site-probe.sh` | generates that file from the live API — one per Jira site |
 
 `investigate.md` and `ticket-writing.md` carry no project identifiers and work
 against any Jira site as they are.
@@ -150,11 +151,26 @@ cd ~/.claude/skills/jira-op          # or wherever install.sh put it
 cp SITE.example.md SITE.md
 ```
 
-`SITE.example.md` lists every value the skill needs — site URL, project key,
-board id, issue type, the required custom fields, the status names, the sprint
-prefix, your account id and permissions — and **the command that produces
-each one**. Fill it by running them, not by guessing: field configuration
-differs per project and changes without notice.
+Or let the probe write it, which is the normal path — `install.sh` and
+`add-site.sh` already call it when no site file exists:
+
+```bash
+tools/site-probe.sh --write          # current site
+tools/site-probe.sh --all --write    # every registered site
+tools/site-probe.sh --all --check    # drift report, writes nothing
+```
+
+It reads the config jira-cli already wrote plus a read-only pass over the API,
+and covers every issue type in the project. `SITE.example.md` documents the
+same values by hand, with the command behind each one, for anyone who prefers
+to fill them deliberately.
+
+**One file per site**: `SITE.md` for the default config, `SITE.<name>.md` for
+`~/.config/.jira/<name>.yml`. The skill picks by `JIRA_CONFIG_FILE`, so three
+Jira accounts mean three files and no editing when switching between them.
+
+Upkeep, the optional cron job and `JIRA_OP_SKILL_DIR`:
+[docs/setup.en.md](docs/setup.en.md#keeping-the-site-files-current).
 
 `SITE.md` is git-ignored. It describes your instance, so it does not belong in
 this repository.

@@ -5,7 +5,12 @@
 #   ./tools/site-probe.sh --site acme     switch to that site first
 #   ./tools/site-probe.sh --write         write it next to the installed skill
 #   ./tools/site-probe.sh --check         compare the installed one with reality
+#   ./tools/site-probe.sh --all --check   every registered site
 #   ./tools/site-probe.sh --skill-dir D   use D instead of auto-detecting
+#
+# JIRA_OP_SKILL_DIR sets that directory once, for machines where the skill is
+# not edited in place: a config canon that is synced into the assistants, a
+# checkout, a shared directory. The flag still wins over the variable.
 #
 # Read-only against Jira. It creates nothing, edits nothing, and never prints
 # the token.
@@ -28,7 +33,8 @@ set -euo pipefail
 
 SITE_NAME=""
 MODE="print"
-SKILL_DIR=""
+SKILL_DIR="${JIRA_OP_SKILL_DIR:-}"
+ALL=0
 
 die() { printf '%s\n' "$*" >&2; exit 1; }
 
@@ -37,6 +43,7 @@ while [ $# -gt 0 ]; do
 		--site)      shift; SITE_NAME="${1:?--site needs a name}" ;;
 		--write)     MODE="write" ;;
 		--check)     MODE="check" ;;
+		--all)       ALL=1 ;;
 		--skill-dir) shift; SKILL_DIR="${1:?--skill-dir needs a path}" ;;
 		-h|--help)   sed -n '2,21p' "${BASH_SOURCE[0]}"; exit 0 ;;
 		*)           die "unknown argument: $1" ;;
@@ -45,6 +52,32 @@ while [ $# -gt 0 ]; do
 done
 
 command -v jira >/dev/null || die "jira CLI not found in PATH"
+command -v jq   >/dev/null || die "jq not found in PATH"
+
+JDIR="$HOME/.config/.jira"
+
+# --all: run once per registered site. Each site has its own file, because
+# field ids, issue types and statuses are not shared between them.
+if [ "$ALL" = 1 ]; then
+	self="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+	rc=0
+	sites=""
+	[ -r "$JDIR/.config.yml" ] && sites="default"
+	for f in "$JDIR"/*.yml; do
+		[ -e "$f" ] || continue
+		sites="$sites $(basename "$f" .yml)"
+	done
+	[ -n "$sites" ] || die "no jira-cli config found under $JDIR"
+	for site in $sites; do
+		printf '\n===== %s =====\n' "$site"
+		case "$MODE" in
+			print) "$self" --site "$site" || rc=$? ;;
+			write) "$self" --site "$site" --write ${SKILL_DIR:+--skill-dir "$SKILL_DIR"} || rc=$? ;;
+			check) "$self" --site "$site" --check ${SKILL_DIR:+--skill-dir "$SKILL_DIR"} || rc=$? ;;
+		esac
+	done
+	exit "$rc"
+fi
 command -v jq   >/dev/null || die "jq not found in PATH"
 
 JDIR="$HOME/.config/.jira"
@@ -108,6 +141,9 @@ DISPLAY_NAME="$(printf '%s' "$MYSELF" | jq -r '.displayName')"
 # A recent issue, used to read the workflow's transition names.
 SAMPLE="$(jira issue list -p "$PROJECT" --plain --no-headers --columns key --paginate 1 2>/dev/null | awk 'NR==1{print $1}')"
 
+# Every list below is sorted explicitly. The API returns object keys and array
+# members in no guaranteed order, and an unsorted list makes --check report
+# drift on a reordering that changed nothing.
 generate() {
 	cat <<EOF
 # Site values — $SITE_LABEL
@@ -131,7 +167,7 @@ API; re-run it when a create or a transition starts failing.
 EOF
 
 	local types
-	types="$(api "/rest/api/3/issue/createmeta/$PROJECT/issuetypes" | jq -r '.issueTypes[] | "\(.id)\t\(.name)"')"
+	types="$(api "/rest/api/3/issue/createmeta/$PROJECT/issuetypes" | jq -r '.issueTypes | sort_by(.id|tonumber)[] | "\(.id)\t\(.name)"')"
 	[ -n "$types" ] || { echo "_No issue types readable — check project permissions._"; return; }
 
 	printf '| Id | Name |\n|---|---|\n'
@@ -163,7 +199,7 @@ EOF
 	printf '## Statuses\n\n'
 	if [ -n "$SAMPLE" ]; then
 		printf 'Transitions available on `%s`:\n\n```\n' "$SAMPLE"
-		api "/rest/api/3/issue/$SAMPLE/transitions" | jq -r '.transitions[] | "\(.id)\t\(.name)"'
+		api "/rest/api/3/issue/$SAMPLE/transitions" | jq -r '.transitions | sort_by(.id|tonumber)[] | "\(.id)\t\(.name)"'
 		printf '```\n\nTransition names are per-workflow, so this is one issue'"'"'s list, not the\nproject'"'"'s. Re-read it whenever a move is refused.\n\n'
 	else
 		printf '_No issue readable in %s, so the workflow could not be sampled._\n\n' "$PROJECT"
@@ -173,7 +209,7 @@ EOF
 	if [ -n "$BOARD_ID" ]; then
 		printf 'Sprints in state `active` on board `%s`:\n\n```\n' "$BOARD_ID"
 		api "/rest/agile/1.0/board/$BOARD_ID/sprint?state=active" \
-		 | jq -r '.values[] | "\(.id)\t\(.name)\t\(.startDate[:10] // "-")..\(.endDate[:10] // "-")"' || true
+		 | jq -r '.values | sort_by(.id)[] | "\(.id)\t\(.name)\t\(.startDate[:10] // "-")..\(.endDate[:10] // "-")"' || true
 		printf '```\n\nBoards keep stale sprints in state `active`, so pick by name prefix **and**\ndate window. `<SPRINT_PREFIX>` is the common prefix of the rows above that\nbelong to this team.\n\n'
 	else
 		printf '_No board in the config — `jira sprint` commands will not work here._\n\n'
@@ -181,7 +217,7 @@ EOF
 
 	printf '## Permissions\n\n| Permission | Value |\n|---|---|\n'
 	api "/rest/api/3/mypermissions?projectKey=$PROJECT&permissions=CREATE_ISSUES,EDIT_ISSUES,DELETE_ISSUES,TRANSITION_ISSUES,ASSIGN_ISSUES,MODIFY_REPORTER,ADD_COMMENTS,SCHEDULE_ISSUES" \
-	 | jq -r '.permissions | to_entries[] | "| \(.key) | \(.value.havePermission) |"'
+	 | jq -r '.permissions | to_entries | sort_by(.key)[] | "| \(.key) | \(.value.havePermission) |"'
 	printf '\nWhen `DELETE_ISSUES` is `false`, a ticket created by mistake stays on the\nboard until an administrator removes it — which is why the skill never creates\none to test itself.\n'
 }
 
