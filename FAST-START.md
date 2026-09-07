@@ -24,7 +24,7 @@ Export the token **before** `jira init` — it authenticates while it asks.
 | `what's in the active sprint` | the sprint that actually contains today |
 | `investigate PROJ-123` | read-only: facts, hypotheses, what could not be checked |
 | `file a ticket: <what you did>` | draft first — nothing is created until you say yes |
-| `weekly report` | draft of the week's update, published nowhere |
+| `weekly report` | writes a `.txt` next to you and answers with its path |
 
 ## Filing a ticket
 
@@ -42,11 +42,19 @@ create. After the write the ticket is read back and the stored values reported.
 Calendar week, Monday to Sunday; run it Friday evening or Saturday morning.
 You will be asked whether the window contained vacation or holidays.
 
+**It writes a file and tells you the path — nothing else.** Plain text with the
+emoji section markers, in the directory the assistant was started in:
+
+```
+weekly-update-2026-08-31_2026-09-06.txt
+```
+
+The content is not printed in the chat, and an existing file is never
+overwritten — a second run writes `-2`.
+
 What it will not do: publish anywhere, mention how long a ticket has been open,
 count sprint carry-overs, or complain about empty fields. Facts of the work
 only. `To Do` tickets never appear.
-
-You get text in the chat. Where it goes is your paste.
 
 ## Several Jira sites
 

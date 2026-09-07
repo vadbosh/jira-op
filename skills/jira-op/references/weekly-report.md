@@ -114,7 +114,40 @@ jira issue comment add PROJ-123 --template /tmp/decision.md
 Suggest this once when a decision surfaces in conversation. Do not lecture
 about it in the report.
 
-## 3. Structure
+## 3. Where the report goes
+
+**A file in the current working directory, and only its path in the reply.**
+
+```
+./weekly-update-<WEEK_START>_<WEEK_END>.txt      e.g. weekly-update-2026-08-31_2026-09-06.txt
+```
+
+The directory is the one the assistant was started in — do not choose another,
+do not create a folder for it, do not write it anywhere under `~/.claude`,
+`~/.codex` or `~/.config/opencode`.
+
+- **Plain text, `.txt`.** No Markdown: no `**bold**`, no backticks, no `#`
+  headings, no tables, no bullet characters other than a plain `-`. The section
+  markers are emoji, exactly as below, because the destination renders them.
+- **Never overwrite.** The name exists already → write
+  `weekly-update-<WEEK_START>_<WEEK_END>-2.txt`, then `-3`, and say which one
+  was written.
+- **Do not print the report in the reply.** Not the whole thing, not the first
+  lines, not a summary of it. The answer is one line:
+
+  ```
+  weekly-update-2026-08-31_2026-09-06.txt
+  ```
+
+  Add at most one short sentence when something needs a decision — a section
+  left empty for lack of input, a second file written because the first
+  existed. Everything else the reader gets by opening the file.
+
+The reason is not tidiness: the report is written to be read once, in the tool
+it is pasted into. Printing it twice makes the chat the place people read it
+from, and the file goes stale the moment the draft is corrected.
+
+## 3a. Structure
 
 ```
 Engineering Weekly Update — <area / component> — <Month D, YYYY>
@@ -181,7 +214,7 @@ Section by section:
 - **🔭 Next week** — planned work as an action with an **Owner:** on each item.
   Not a wish list: only work that is actually committed.
 
-## 3a. Facts of the week only — never board hygiene
+## 3b. Facts of the week only — never board hygiene
 
 The report states what was worked on and what came out of it. It is **not** an
 audit of the board. Ticket metadata is not a finding.
@@ -217,8 +250,12 @@ report.
 - Never claim something is fixed unless a ticket, a comment or a command
   output says so. Partially resolved goes under Risks, with what remains.
 - Length: an item that needs more than four sentences is probably two items.
+- **The file is plain text.** Labels that appear in bold in this reference —
+  Impact, Mitigation, Why, Decision maker, Owner — are written as
+  `Impact:` in the file, with no asterisks and no backticks. Wrap at about 80
+  characters so it stays readable in a plain-text field.
 
-## 5. Before sending
+## 5. Before writing the file
 
 - Every key in the report exists and its status matches what the report claims.
 - Every named decision maker actually appears in the ticket or was confirmed
@@ -226,3 +263,6 @@ report.
 - `None this week.` appears only where it was checked, not where it was
   convenient.
 - The date came from `date -I` in this session.
+- No Markdown survived into the text: no `**`, no `` ` ``, no `#`, no table
+  pipes.
+- The reply carries the path and nothing of the content.

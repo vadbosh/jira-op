@@ -118,8 +118,10 @@ weekly report for last week
 ```
 
 It reads the calendar week (Monday–Sunday), asks whether the window contained
-vacation or holidays, and returns a draft. Nothing is published to Jira or sent
-anywhere — you copy it where it belongs.
+vacation or holidays, and **writes a plain-text file in the directory the
+assistant was started in** — `weekly-update-<start>_<end>.txt`. The reply is
+the path; the content is not printed into the chat, and an existing file is
+never overwritten. Nothing is published to Jira or sent anywhere.
 
 The report has a fixed shape: decisions needed, escalations, what went well,
 risks, decisions made, next week. Two rules make it readable:
@@ -149,8 +151,8 @@ Stated plainly, because a skill that reads like an integration invites the
 assumption that it is one.
 
 - **It does not publish the weekly report.** No Slack, no email, no Confluence,
-  no comment on a ticket. It returns a draft in the conversation; where that
-  text goes is your decision and your paste.
+  no comment on a ticket. It writes a text file next to you and hands you the
+  path; where that text goes is your decision and your paste.
 - **It does not write to Jira on its own.** Create, edit, transition and comment
   each wait for approval of that specific change. Approving one create does not
   approve the next.
