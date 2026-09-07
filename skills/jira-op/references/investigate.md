@@ -73,9 +73,20 @@ curl -s -u "$E:$JIRA_API_TOKEN" \
   | jq -c '.detail[0].pullRequests[]? | {status, name, url, lastUpdate}'
 ```
 
-`dataType` also takes `branch`, `repository` and `build`. The endpoint is not
-part of the documented REST API and can change; when it returns nothing,
-report that the link could not be read, not that the work does not exist.
+`dataType` also takes `branch`, `repository` and `build`. **Every response
+carries `branches`, `pullRequests` and `repositories` as keys**, whichever
+`dataType` was asked for — so select the one you want by name. A `//` chain
+returns whichever key comes first and looks like a correct answer:
+
+```bash
+curl -s -u "$E:$JIRA_API_TOKEN" \
+  "$S/rest/dev-status/latest/issue/detail?issueId=$ID&applicationType=bitbucket&dataType=branch" \
+  | jq -c '.detail[0].branches[]? | {name, repo: .repository.name, lastCommit: .lastCommit.authorTimestamp}'
+```
+
+The endpoint is not part of the documented REST API and can change; when it
+returns nothing, report that the link could not be read, not that the work does
+not exist.
 
 A PR shown as `OPEN` while the ticket says the work is finished is the most
 common real finding here — worth stating, without turning it into a verdict.
