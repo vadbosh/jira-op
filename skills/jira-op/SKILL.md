@@ -26,7 +26,7 @@ Missing for the active site — generate it, do not hand-write it and do not
 guess the values:
 
 ```bash
-tools/site-probe.sh --write        # from the repository this skill came from
+scripts/site-probe.sh --write      # next to this file, in this skill directory
 ```
 
 It reads the config jira-cli already wrote plus the live API, and covers every

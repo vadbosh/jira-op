@@ -19,12 +19,12 @@ and without it in the environment it fails with `401` halfway through.
 
 **You do not run the site probe.** `install.sh` reads your project's real field
 ids by itself when no site file exists yet, and `add-site.sh` does the same for
-a new site. `jira-op-site-probe --write` is only for later — when Jira's
+a new site. `$SKILL/scripts/site-probe.sh --write` is only for later — when Jira's
 configuration changed under you:
 
 ```bash
-jira-op-site-probe --all --check   # did anything change? writes nothing
-jira-op-site-probe --all --write   # refresh every site
+$SKILL/scripts/site-probe.sh --all --check   # did anything change? writes nothing
+$SKILL/scripts/site-probe.sh --all --write   # refresh every site
 ```
 
 ## Then just talk to the assistant
@@ -73,8 +73,14 @@ only. `To Do` tickets never appear.
 ## Several Jira sites
 
 ```bash
-jira-op-add-site acme      # asks for the token, runs init, writes SITE.acme.md
-jira_site acme             # switch  (needs: . ~/.local/share/jira-op/jira_site.sh)
+# the skill directory of whichever assistant you use
+SKILL=~/.claude/skills/jira-op            # or ~/.codex/skills/jira-op
+                                          # or ~/.config/opencode/skills/jira-op
+```
+
+```bash
+$SKILL/scripts/add-site.sh acme      # asks for the token, runs init, writes SITE.acme.md
+jira_site acme             # switch  (needs: . $SKILL/scripts/jira_site.sh)
 jira_site default          # switch back
 ```
 
@@ -82,7 +88,7 @@ jira_site default          # switch back
 
 ```bash
 jira me                            # 401 = token or email wrong
-jira-op-site-probe --all --check   # the project changed its fields or statuses
+$SKILL/scripts/site-probe.sh --all --check   # the project changed its fields or statuses
 ```
 
 A create that fails on an unknown `customfield_*` means the schema moved: run

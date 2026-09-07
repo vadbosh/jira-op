@@ -173,13 +173,20 @@ skills\jira-op  ->  %USERPROFILE%\.claude\skills\jira-op
                 ->  %APPDATA%\opencode\skills\jira-op
 ```
 
-Сам скил — это Markdown, на shell написан только установщик. `tools/add-site.sh`
-и `tools/jira_site.sh` тоже на bash, поэтому в родном Windows переключение
-между сайтами делается заданием `JIRA_CONFIG_FILE` и `JIRA_API_TOKEN` вручную.
+Скил — это Markdown плюс три bash-скрипта в `scripts/`, поэтому в родном
+Windows сам скил работает, а скрипты нет: переключение между сайтами делается
+заданием `JIRA_CONFIG_FILE` и `JIRA_API_TOKEN` вручную, а файл сайта пишется
+из WSL или Git Bash.
 
 Перезапустите ассистента или начните новую сессию, чтобы он перечитал скилы.
 
 ## 7. Несколько сайтов Jira
+
+```bash
+# каталог скила того ассистента, которым пользуетесь
+SKILL=~/.claude/skills/jira-op            # либо ~/.codex/skills/jira-op
+                                          # либо ~/.config/opencode/skills/jira-op
+```
 
 Один файл конфигурации описывает один сайт, а токен один на процесс.
 Переключаться они обязаны вместе: конфигурация одного сайта с токеном другого
@@ -189,7 +196,7 @@ skills\jira-op  ->  %USERPROFILE%\.claude\skills\jira-op
 любого каталога и не зависит от того, где лежит клон:
 
 ```bash
-jira-op-add-site acme          # либо ./tools/add-site.sh из клона
+$SKILL/scripts/add-site.sh acme
 ```
 
 Скрипт сначала спрашивает токен и экспортирует его, затем запускает `jira init`
@@ -199,7 +206,7 @@ jira-op-add-site acme          # либо ./tools/add-site.sh из клона
 диске. Если init упал, конфигурация удаляется, токен на диск не попадает.
 
 ```bash
-jira-op-add-site --list        # что уже заведено
+$SKILL/scripts/add-site.sh --list        # что уже заведено
 ```
 
 Переключение — функцией оболочки. `install.sh` кладёт копию под `$HOME`,
@@ -207,7 +214,7 @@ jira-op-add-site --list        # что уже заведено
 клона, сломается в день, когда клон переедет.
 
 ```bash
-. ~/.local/share/jira-op/jira_site.sh    # эту строку в ~/.bashrc или ~/.zshrc
+. $SKILL/scripts/jira_site.sh    # эту строку в ~/.bashrc или ~/.zshrc
 
 jira_site acme      # ~/.config/.jira/acme.yml + acme.token.env
 jira_site default   # обратно на .config.yml + token.env
@@ -230,9 +237,9 @@ jira_site default   # обратно на .config.yml + token.env
 предупреждая. Актуальность держат три команды:
 
 ```bash
-jira-op-site-probe --write          # перегенерировать для текущего сайта
-jira-op-site-probe --all --write    # для всех заведённых сайтов
-jira-op-site-probe --all --check    # показать расхождение, ничего не писать
+$SKILL/scripts/site-probe.sh --write          # перегенерировать для текущего сайта
+$SKILL/scripts/site-probe.sh --all --write    # для всех заведённых сайтов
+$SKILL/scripts/site-probe.sh --all --check    # показать расхождение, ничего не писать
 ```
 
 `--check` возвращает `3`, когда живой API расходится с тем, что на диске, —
@@ -242,7 +249,7 @@ jira-op-site-probe --all --check    # показать расхождение, �
 ```cron
 # раз в неделю, только чтение; при изменении проекта — код 3 и diff в логе
 23 9 * * 1 PATH=/usr/local/bin:/usr/bin:/bin HOME=/home/you \
-  /home/you/.local/bin/jira-op-site-probe --all --check \
+  $SKILL/scripts/site-probe.sh --all --check \
   >> /home/you/.local/state/jira-op/site-check.log 2>&1
 ```
 
@@ -259,7 +266,7 @@ cron запускается с урезанным окружением: зада
 ассистентов и пишет во все.
 
 ```
-$ jira-op-site-probe --check
+$ $SKILL/scripts/site-probe.sh --check
 no drift: ~/.claude/skills/jira-op/SITE.md
 no drift: ~/.config/opencode/skills/jira-op/SITE.md
 no drift: ~/.codex/skills/jira-op/SITE.md
@@ -280,7 +287,7 @@ export JIRA_OP_SKILL_DIR=~/config-canon/skills/jira-op
 
 **Как это выглядит, если пропустить:** файл сайта записан, всё работает, а
 после очередной синхронизации скил снова с плейсхолдерами.
-`jira-op-site-probe --check` это назовёт — `missing: <путь> — run with --write`.
+`$SKILL/scripts/site-probe.sh --check` это назовёт — `missing: <путь> — run with --write`.
 Каждая запись печатает пути, по которым прошла, так что достаточно один раз
 сверить их с тем, где у вас на самом деле лежит скил.
 

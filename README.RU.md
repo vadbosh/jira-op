@@ -48,7 +48,7 @@
 | `references/ticket-writing.md` | как написать задачу, которую выполнит другой человек |
 | `references/commands.md` | справочник по jira-cli, включая несуществующие флаги |
 | `SITE.example.md` | описывает каждое значение сайта и команду, которая его выдаёт — только в репозитории, в скил не ставится |
-| `tools/site-probe.sh` | собирает этот файл из живого API — по одному на сайт Jira |
+| `scripts/site-probe.sh` | собирает этот файл из живого API — по одному на сайт Jira |
 
 `investigate.md` и `ticket-writing.md` не содержат идентификаторов проекта и
 работают с любым сайтом Jira как есть.
@@ -185,16 +185,16 @@ weekly report for last week
 Разрешает их один файл:
 
 ```bash
-jira-op-site-probe --write           # обычный путь
+$SKILL/scripts/site-probe.sh --write           # обычный путь
 ```
 
 Либо пусть его соберёт probe — это обычный путь, `install.sh` и `add-site.sh`
 вызывают его сами, когда файла сайта нет:
 
 ```bash
-jira-op-site-probe --write           # текущий сайт
-jira-op-site-probe --all --write     # все заведённые сайты
-jira-op-site-probe --all --check     # отчёт о расхождении, без записи
+$SKILL/scripts/site-probe.sh --write           # текущий сайт
+$SKILL/scripts/site-probe.sh --all --write     # все заведённые сайты
+$SKILL/scripts/site-probe.sh --all --check     # отчёт о расхождении, без записи
 ```
 
 Он читает конфигурацию, которую уже записал jira-cli, и делает проход по API
@@ -219,19 +219,25 @@ jira-op-site-probe --all --check     # отчёт о расхождении, б�
 
 ## Несколько сайтов Jira
 
+```bash
+# каталог скила того ассистента, которым пользуетесь
+SKILL=~/.claude/skills/jira-op            # либо ~/.codex/skills/jira-op
+                                          # либо ~/.config/opencode/skills/jira-op
+```
+
 jira-cli читает один конфиг и один токен, и это два независимых механизма:
 конфиг одного сайта с токеном другого даёт `401`, который выглядит как
-протухший токен, а не как неверная пара. Функция `jira_site` — ставится в
-`~/.local/share/jira-op/jira_site.sh`, подключать её, а не файл из клона, —
-переключает пару одним шагом,
-[`tools/add-site.sh`](tools/add-site.sh) заводит новый сайт.
+протухший токен, а не как неверная пара. Функция `jira_site` лежит внутри скила, в
+`scripts/jira_site.sh`; её и подключайте из rc-файла оболочки —
+она переключает пару одним шагом,
+[`skills/jira-op/scripts/add-site.sh`](skills/jira-op/scripts/add-site.sh) заводит новый сайт.
 
 После `install.sh` обе команды лежат в PATH, поэтому клон можно перенести или
 удалить:
 
 ```bash
-jira-op-add-site acme           # спросит токен, запустит jira init, проверит пару
-jira-op-add-site --list         # что уже заведено
+$SKILL/scripts/add-site.sh acme           # спросит токен, запустит jira init, проверит пару
+$SKILL/scripts/add-site.sh --list         # что уже заведено
 jira_site acme                  # переключиться
 jira_site default               # вернуться на конфиг по умолчанию
 ```

@@ -129,49 +129,22 @@ if [ "$DRY_RUN" = 0 ]; then
 		[ "$have_site" = 1 ] && continue
 
 		printf '\n%s: no site file yet — probing the configured Jira...\n' "$dest"
-		if ! "$SRC/tools/site-probe.sh" --write --skill-dir "$dest"; then
+		if ! "$dest/scripts/site-probe.sh" --write --skill-dir "$dest"; then
 			printf 'not generated (jira-cli not configured yet?). After jira init, run:\n  %s --write\n' \
-			       "$SRC/tools/site-probe.sh"
+			       "$dest/scripts/site-probe.sh"
 		fi
 	done
 fi
 
-# Same reasoning as the shell function: a cron line or a note in a runbook that
-# points into a clone breaks when the clone moves. Put the two commands on PATH
-# under stable names; they stay next to each other, which is how add-site finds
-# the probe.
-BIN_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
-if [ "$DRY_RUN" = 1 ]; then
-	printf '\n  would: cp tools/site-probe.sh %s/jira-op-site-probe\n' "$BIN_DIR"
-	printf '  would: cp tools/add-site.sh   %s/jira-op-add-site\n' "$BIN_DIR"
-else
-	mkdir -p "$BIN_DIR"
-	cp "$SRC/tools/site-probe.sh" "$BIN_DIR/jira-op-site-probe"
-	cp "$SRC/tools/add-site.sh"   "$BIN_DIR/jira-op-add-site"
-	chmod 755 "$BIN_DIR/jira-op-site-probe" "$BIN_DIR/jira-op-add-site"
-	printf '\ncommands: %s/jira-op-site-probe, %s/jira-op-add-site\n' "$BIN_DIR" "$BIN_DIR"
-	case ":$PATH:" in
-		*":$BIN_DIR:"*) : ;;
-		*) printf '  %s is not on your PATH — add it, or call them by full path\n' "$BIN_DIR" ;;
-	esac
-fi
-
-# The shell function is sourced from a shell rc file, so it cannot live at the
-# path of a clone either. Install a copy under $HOME and let the rc file point
-# there. It stays in share/, not bin/: it is sourced, not executed.
-SHELL_LIB="${XDG_DATA_HOME:-$HOME/.local/share}/jira-op"
-if [ "$DRY_RUN" = 1 ]; then
-	printf '\n  would: cp %s/tools/jira_site.sh %s/\n' "$SRC" "$SHELL_LIB"
-else
-	mkdir -p "$SHELL_LIB"
-	cp "$SRC/tools/jira_site.sh" "$SHELL_LIB/jira_site.sh"
-	printf '\nshell helper: %s/jira_site.sh\n' "$SHELL_LIB"
-	if grep -rqs "jira-op/jira_site.sh" "$HOME/.bashrc" "$HOME/.bash_aliases" "$HOME/.zshrc" 2>/dev/null; then
-		printf '  already sourced from your shell config\n'
-	else
-		printf '  add this line to ~/.bashrc, ~/.zshrc or ~/.bash_aliases:\n'
-		printf '    . %s/jira_site.sh\n' "$SHELL_LIB"
-	fi
+# The scripts ship inside the skill, so they land wherever the skill lands and
+# are versioned with it. Nothing goes on PATH, nothing is copied to a second
+# home, and the assistant already knows this directory — it is the one holding
+# the SKILL.md it just read.
+FIRST="${targets[0]}/jira-op"
+if [ "$DRY_RUN" = 0 ]; then
+	for dir in "${targets[@]}"; do
+		chmod 755 "$dir/jira-op/scripts/"*.sh 2>/dev/null || true
+	done
 fi
 
 cat <<EOF
@@ -179,8 +152,8 @@ cat <<EOF
 Next:
   1. jira init                 configure jira-cli for your site
   2. store the token           see docs/setup.en.md, or docs/setup.ru.md
-  3. site values               jira-op-site-probe --write
+  3. site values               $FIRST/scripts/site-probe.sh --write
                                (re-run when a create or a transition fails)
-  4. several sites             jira-op-add-site <name>
-                               . $SHELL_LIB/jira_site.sh
+  4. several sites             $FIRST/scripts/add-site.sh <name>
+                               . $FIRST/scripts/jira_site.sh
 EOF

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # add-site.sh — register one more Atlassian site for jira-cli.
 #
-#   ~/.config/.jira/add-site.sh acme
+#   <skill-dir>/scripts/add-site.sh acme
 #
 # Produces the pair that `jira_site` (in ~/.bash_aliases) loads together:
 #

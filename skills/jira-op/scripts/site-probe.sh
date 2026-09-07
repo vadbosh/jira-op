@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # site-probe.sh — generate a SITE.md for the Jira site the CLI is pointed at.
 #
-#   ./tools/site-probe.sh                 print SITE.md for the current site
-#   ./tools/site-probe.sh --site acme     switch to that site first
-#   ./tools/site-probe.sh --write         write it next to the installed skill
-#   ./tools/site-probe.sh --check         compare the installed one with reality
-#   ./tools/site-probe.sh --all --check   every registered site
-#   ./tools/site-probe.sh --skill-dir D   use D instead of auto-detecting
+#   site-probe.sh                 print SITE.md for the current site
+#   site-probe.sh --site acme     switch to that site first
+#   site-probe.sh --write         write it next to the installed skill
+#   site-probe.sh --check         compare the installed one with reality
+#   site-probe.sh --all --check   every registered site
+#   site-probe.sh --skill-dir D   use D instead of auto-detecting
+#
+# It ships inside the skill: <skill-dir>/scripts/site-probe.sh. Called with no
+# --skill-dir it writes to every installed copy of the skill it can find.
 #
 # JIRA_OP_SKILL_DIR sets that directory once, for machines where the skill is
 # not edited in place: a config canon that is synced into the assistants, a

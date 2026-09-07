@@ -2,9 +2,10 @@
 # shellcheck disable=SC1090,SC1091   # the token files are per-site and per-user
 # jira_site — switch jira-cli between Atlassian sites.
 #
-# Source it from ~/.bash_aliases (or wherever your shell keeps its functions):
+# It ships inside the skill, so it lives next to the SKILL.md the assistant
+# reads. Source it from your shell rc file by that path:
 #
-#   . /path/to/jira-op/tools/jira_site.sh
+#   . ~/.claude/skills/jira-op/scripts/jira_site.sh
 #
 # jira-cli reads one config file (JIRA_CONFIG_FILE, default
 # ~/.config/.jira/.config.yml) and one token (JIRA_API_TOKEN). Those are two
@@ -20,7 +21,8 @@
 # limited to the current shell: an assistant process started earlier keeps
 # whatever it inherited at launch.
 #
-# Register a new site with add-site.sh; never hand-write the config.
+# Register a new site with add-site.sh next to this file; never hand-write
+# the config.
 
 jira_site() {
 	local d=~/.config/.jira name=${1:?usage: jira_site <default|site-name>}

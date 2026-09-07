@@ -45,7 +45,7 @@ This skill encodes the answers to both, and the traps found while getting there.
 | `references/ticket-writing.md` | writing a ticket someone else can execute |
 | `references/commands.md` | jira-cli reference, with the flags that do not exist |
 | `SITE.example.md` | documents every site value with the command behind it — repository only, never installed |
-| `tools/site-probe.sh` | generates that file from the live API — one per Jira site |
+| `scripts/site-probe.sh` | generates that file from the live API — one per Jira site |
 
 `investigate.md` and `ticket-writing.md` carry no project identifiers and work
 against any Jira site as they are.
@@ -184,16 +184,16 @@ The skill files carry `<PLACEHOLDER>` names, never a hard-coded site. One file
 resolves them:
 
 ```bash
-jira-op-site-probe --write           # the normal path
+$SKILL/scripts/site-probe.sh --write           # the normal path
 ```
 
 Or let the probe write it, which is the normal path — `install.sh` and
 `add-site.sh` already call it when no site file exists:
 
 ```bash
-jira-op-site-probe --write           # current site
-jira-op-site-probe --all --write     # every registered site
-jira-op-site-probe --all --check     # drift report, writes nothing
+$SKILL/scripts/site-probe.sh --write           # current site
+$SKILL/scripts/site-probe.sh --all --write     # every registered site
+$SKILL/scripts/site-probe.sh --all --check     # drift report, writes nothing
 ```
 
 It reads the config jira-cli already wrote plus a read-only pass over the API,
@@ -218,19 +218,25 @@ placeholders and work before `SITE.md` exists.
 
 ## Several Jira sites
 
+```bash
+# the skill directory of whichever assistant you use
+SKILL=~/.claude/skills/jira-op            # or ~/.codex/skills/jira-op
+                                          # or ~/.config/opencode/skills/jira-op
+```
+
 jira-cli reads one config file and one token, and they are separate mechanisms —
 a config from one site with a token from another returns `401`, which reads as
-an expired token rather than a wrong pairing. `jira_site` — installed to
-`~/.local/share/jira-op/jira_site.sh`, source that and not the clone —
-switches the pair in one step;
-[`tools/add-site.sh`](tools/add-site.sh) registers a new site.
+an expired token rather than a wrong pairing. `jira_site` ships inside the skill at
+`scripts/jira_site.sh`; source that from your shell rc file —
+it switches the pair in one step;
+[`skills/jira-op/scripts/add-site.sh`](skills/jira-op/scripts/add-site.sh) registers a new site.
 
 After `install.sh` both commands are on your PATH, so the clone can move or go
 away:
 
 ```bash
-jira-op-add-site acme           # asks for the token, runs jira init, verifies
-jira-op-add-site --list         # what is registered
+$SKILL/scripts/add-site.sh acme           # asks for the token, runs jira init, verifies
+$SKILL/scripts/add-site.sh --list         # what is registered
 jira_site acme                  # switch
 jira_site default               # back to the default config
 ```

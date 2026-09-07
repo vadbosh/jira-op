@@ -19,12 +19,12 @@ jira me                       # печатает ваш login — значит �
 
 **Probe запускать не нужно.** `install.sh` сам считывает настоящие id полей
 вашего проекта, когда файла сайта ещё нет; `add-site.sh` делает то же для
-нового сайта. `jira-op-site-probe --write` нужен позже — когда конфигурацию
+нового сайта. `$SKILL/scripts/site-probe.sh --write` нужен позже — когда конфигурацию
 в Jira поменяли:
 
 ```bash
-jira-op-site-probe --all --check   # что-то изменилось? ничего не пишет
-jira-op-site-probe --all --write   # обновить все сайты
+$SKILL/scripts/site-probe.sh --all --check   # что-то изменилось? ничего не пишет
+$SKILL/scripts/site-probe.sh --all --write   # обновить все сайты
 ```
 
 ## Дальше просто говорите ассистенту
@@ -75,8 +75,14 @@ weekly-update-2026-08-31_2026-09-06.txt
 ## Несколько сайтов Jira
 
 ```bash
-jira-op-add-site acme      # спросит токен, запустит init, создаст SITE.acme.md
-jira_site acme             # переключиться  (нужно: . ~/.local/share/jira-op/jira_site.sh)
+# каталог скила того ассистента, которым пользуетесь
+SKILL=~/.claude/skills/jira-op            # либо ~/.codex/skills/jira-op
+                                          # либо ~/.config/opencode/skills/jira-op
+```
+
+```bash
+$SKILL/scripts/add-site.sh acme      # спросит токен, запустит init, создаст SITE.acme.md
+jira_site acme             # переключиться  (нужно: . $SKILL/scripts/jira_site.sh)
 jira_site default          # вернуться
 ```
 
@@ -84,7 +90,7 @@ jira_site default          # вернуться
 
 ```bash
 jira me                            # 401 — не тот токен или не тот email
-jira-op-site-probe --all --check   # в проекте поменяли поля или статусы
+$SKILL/scripts/site-probe.sh --all --check   # в проекте поменяли поля или статусы
 ```
 
 Создание падает на незнакомом `customfield_*` — схему поменяли: запустите

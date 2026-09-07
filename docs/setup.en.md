@@ -171,13 +171,20 @@ skills\jira-op  ->  %USERPROFILE%\.claude\skills\jira-op
                 ->  %APPDATA%\opencode\skills\jira-op
 ```
 
-The skill is Markdown; only the installer is shell. `tools/add-site.sh` and
-`tools/jira_site.sh` are bash as well, so multi-site switching on native
-Windows means setting `JIRA_CONFIG_FILE` and `JIRA_API_TOKEN` yourself.
+The skill is Markdown plus three bash scripts under `scripts/`, so on native
+Windows the skill itself works and the scripts do not: multi-site switching
+there means setting `JIRA_CONFIG_FILE` and `JIRA_API_TOKEN` yourself, and the
+site file has to be written from WSL or Git Bash.
 
 Restart the assistant, or start a new session, so it re-reads its skills.
 
 ## 7. More than one Jira site
+
+```bash
+# the skill directory of whichever assistant you use
+SKILL=~/.claude/skills/jira-op            # or ~/.codex/skills/jira-op
+                                          # or ~/.config/opencode/skills/jira-op
+```
 
 One config file describes one site, and the token is global to the process.
 They must switch together: a config from one site with a token from another
@@ -187,7 +194,7 @@ Register a site — `install.sh` put the command on your PATH, so this works
 from anywhere and does not care where the clone is:
 
 ```bash
-jira-op-add-site acme          # or ./tools/add-site.sh from the clone
+$SKILL/scripts/add-site.sh acme
 ```
 
 It asks for the token first, exports it, runs `jira init` against
@@ -197,7 +204,7 @@ pair in a clean environment, so what gets checked is what is on disk. If init
 fails, the config is removed and no token is written.
 
 ```bash
-jira-op-add-site --list        # what is registered
+$SKILL/scripts/add-site.sh --list        # what is registered
 ```
 
 Switch with the shell function. `install.sh` puts a copy under `$HOME` —
@@ -205,7 +212,7 @@ source **that**, never the clone: an rc file pointing into a checkout breaks
 the day the checkout moves.
 
 ```bash
-. ~/.local/share/jira-op/jira_site.sh    # add this to ~/.bashrc or ~/.zshrc
+. $SKILL/scripts/jira_site.sh    # add this to ~/.bashrc or ~/.zshrc
 
 jira_site acme      # ~/.config/.jira/acme.yml + acme.token.env
 jira_site default   # back to .config.yml + token.env
@@ -228,9 +235,9 @@ before writing anything there; see *Adapting it to your Jira* in the README.
 without telling anyone. Three things keep it honest:
 
 ```bash
-jira-op-site-probe --write          # regenerate for the current site
-jira-op-site-probe --all --write    # every registered site
-jira-op-site-probe --all --check    # report drift, write nothing
+$SKILL/scripts/site-probe.sh --write          # regenerate for the current site
+$SKILL/scripts/site-probe.sh --all --write    # every registered site
+$SKILL/scripts/site-probe.sh --all --check    # report drift, write nothing
 ```
 
 `--check` exits `3` when the live API disagrees with what is on disk, so it
@@ -240,7 +247,7 @@ touch your crontab. Add it yourself if you want it, adjusting the paths:
 ```cron
 # weekly, read-only; exit 3 and a diff in the log when a project changed
 23 9 * * 1 PATH=/usr/local/bin:/usr/bin:/bin HOME=/home/you \
-  /home/you/.local/bin/jira-op-site-probe --all --check \
+  $SKILL/scripts/site-probe.sh --all --check \
   >> /home/you/.local/state/jira-op/site-check.log 2>&1
 ```
 
@@ -257,7 +264,7 @@ machinery works as it is: with no variable, the tool finds the assistant
 directories itself and writes to all of them:
 
 ```
-$ jira-op-site-probe --check
+$ $SKILL/scripts/site-probe.sh --check
 no drift: ~/.claude/skills/jira-op/SITE.md
 no drift: ~/.config/opencode/skills/jira-op/SITE.md
 no drift: ~/.codex/skills/jira-op/SITE.md
@@ -278,7 +285,7 @@ one run.
 
 **The symptom, if you skip this:** the site file is written, everything works,
 and after the next sync or dotfiles apply the skill is back to placeholders.
-`jira-op-site-probe --check` names it — `missing: <path> — run with --write`.
+`$SKILL/scripts/site-probe.sh --check` names it — `missing: <path> — run with --write`.
 Every write prints the paths it touched, so comparing them once with where your
 skill actually lives settles it.
 
