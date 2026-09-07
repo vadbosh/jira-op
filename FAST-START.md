@@ -23,8 +23,8 @@ a new site. `tools/site-probe.sh --write` is only for later — when Jira's
 configuration changed under you:
 
 ```bash
-tools/site-probe.sh --all --check   # did anything change? writes nothing
-tools/site-probe.sh --all --write   # refresh every site
+jira-op-site-probe --all --check   # did anything change? writes nothing
+jira-op-site-probe --all --write   # refresh every site
 ```
 
 ## Then just talk to the assistant
@@ -73,7 +73,7 @@ only. `To Do` tickets never appear.
 ## Several Jira sites
 
 ```bash
-tools/add-site.sh acme     # asks for the token, runs init, writes SITE.acme.md
+jira-op-add-site acme      # asks for the token, runs init, writes SITE.acme.md
 jira_site acme             # switch  (needs: . ~/.local/share/jira-op/jira_site.sh)
 jira_site default          # switch back
 ```
@@ -81,8 +81,8 @@ jira_site default          # switch back
 ## When something breaks
 
 ```bash
-jira me                             # 401 = token or email wrong
-tools/site-probe.sh --all --check   # the project changed its fields or statuses
+jira me                            # 401 = token or email wrong
+jira-op-site-probe --all --check   # the project changed its fields or statuses
 ```
 
 A create that fails on an unknown `customfield_*` means the schema moved: run

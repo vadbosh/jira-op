@@ -110,8 +110,14 @@ fi
 # and dirname of the link points at the link's directory, not at tools/.
 SELF="${BASH_SOURCE[0]}"
 command -v readlink >/dev/null && SELF="$(readlink -f "$SELF" 2>/dev/null || printf '%s' "${BASH_SOURCE[0]}")"
-PROBE="$(cd "$(dirname "$SELF")" && pwd)/site-probe.sh"
-if [ -x "$PROBE" ]; then
+SELF_DIR="$(cd "$(dirname "$SELF")" && pwd)"
+# Installed on PATH the scripts are renamed, and they stay next to each other
+# either way — check both names rather than assuming the repository layout.
+PROBE=""
+for cand in "$SELF_DIR/site-probe.sh" "$SELF_DIR/jira-op-site-probe"; do
+	[ -x "$cand" ] && { PROBE="$cand"; break; }
+done
+if [ -n "$PROBE" ]; then
 	printf '\nGenerating the site file for the skill...\n'
 	if ! "$PROBE" --site "$NAME" --write; then
 		printf 'site file not generated — run it yourself:\n  %s --site %s --write\n' "$PROBE" "$NAME" >&2
@@ -119,7 +125,7 @@ if [ -x "$PROBE" ]; then
 else
 	# Never skip silently: a missing probe means the skill keeps placeholders
 	# for this site, and nothing else would say so.
-	printf '\nsite-probe.sh not found next to this script (%s).\n' "$PROBE" >&2
+	printf '\nsite-probe not found next to this script (%s).\n' "$SELF_DIR" >&2
 	printf 'The skill has no values for %s yet. Run the probe from the repository:\n  tools/site-probe.sh --site %s --write\n' "$NAME" "$NAME" >&2
 fi
 

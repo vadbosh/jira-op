@@ -225,11 +225,14 @@ an expired token rather than a wrong pairing. `jira_site` — installed to
 switches the pair in one step;
 [`tools/add-site.sh`](tools/add-site.sh) registers a new site.
 
+After `install.sh` both commands are on your PATH, so the clone can move or go
+away:
+
 ```bash
-./tools/add-site.sh acme        # asks for the token, runs jira init, verifies
-./tools/add-site.sh --list      # what is registered
+jira-op-add-site acme           # asks for the token, runs jira init, verifies
+jira-op-add-site --list         # what is registered
 jira_site acme                  # switch
-jira_site wl                    # back to the default config
+jira_site default               # back to the default config
 ```
 
 `jira me` prints the login, and that is the proof the switch happened.

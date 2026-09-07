@@ -23,8 +23,8 @@ jira me                       # печатает ваш login — значит �
 в Jira поменяли:
 
 ```bash
-tools/site-probe.sh --all --check   # что-то изменилось? ничего не пишет
-tools/site-probe.sh --all --write   # обновить все сайты
+jira-op-site-probe --all --check   # что-то изменилось? ничего не пишет
+jira-op-site-probe --all --write   # обновить все сайты
 ```
 
 ## Дальше просто говорите ассистенту
@@ -75,7 +75,7 @@ weekly-update-2026-08-31_2026-09-06.txt
 ## Несколько сайтов Jira
 
 ```bash
-tools/add-site.sh acme     # спросит токен, запустит init, создаст SITE.acme.md
+jira-op-add-site acme      # спросит токен, запустит init, создаст SITE.acme.md
 jira_site acme             # переключиться  (нужно: . ~/.local/share/jira-op/jira_site.sh)
 jira_site default          # вернуться
 ```
@@ -83,8 +83,8 @@ jira_site default          # вернуться
 ## Если что-то сломалось
 
 ```bash
-jira me                             # 401 — не тот токен или не тот email
-tools/site-probe.sh --all --check   # в проекте поменяли поля или статусы
+jira me                            # 401 — не тот токен или не тот email
+jira-op-site-probe --all --check   # в проекте поменяли поля или статусы
 ```
 
 Создание падает на незнакомом `customfield_*` — схему поменяли: запустите

@@ -226,11 +226,14 @@ jira-cli читает один конфиг и один токен, и это д
 переключает пару одним шагом,
 [`tools/add-site.sh`](tools/add-site.sh) заводит новый сайт.
 
+После `install.sh` обе команды лежат в PATH, поэтому клон можно перенести или
+удалить:
+
 ```bash
-./tools/add-site.sh acme        # спросит токен, запустит jira init, проверит пару
-./tools/add-site.sh --list      # что уже заведено
+jira-op-add-site acme           # спросит токен, запустит jira init, проверит пару
+jira-op-add-site --list         # что уже заведено
 jira_site acme                  # переключиться
-jira_site wl                    # вернуться на конфиг по умолчанию
+jira_site default               # вернуться на конфиг по умолчанию
 ```
 
 `jira me` печатает login — это и есть доказательство, что переключение

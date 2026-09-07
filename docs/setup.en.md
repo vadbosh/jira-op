@@ -183,10 +183,11 @@ One config file describes one site, and the token is global to the process.
 They must switch together: a config from one site with a token from another
 returns `401`, which reads as an expired token rather than a wrong pairing.
 
-Register a site:
+Register a site — `install.sh` put the command on your PATH, so this works
+from anywhere and does not care where the clone is:
 
 ```bash
-./tools/add-site.sh acme
+jira-op-add-site acme          # or ./tools/add-site.sh from the clone
 ```
 
 It asks for the token first, exports it, runs `jira init` against
@@ -196,7 +197,7 @@ pair in a clean environment, so what gets checked is what is on disk. If init
 fails, the config is removed and no token is written.
 
 ```bash
-./tools/add-site.sh --list      # what is registered
+jira-op-add-site --list        # what is registered
 ```
 
 Switch with the shell function. `install.sh` puts a copy under `$HOME` —
@@ -227,9 +228,9 @@ before writing anything there; see *Adapting it to your Jira* in the README.
 without telling anyone. Three things keep it honest:
 
 ```bash
-tools/site-probe.sh --write          # regenerate for the current site
-tools/site-probe.sh --all --write    # every registered site
-tools/site-probe.sh --all --check    # report drift, write nothing
+jira-op-site-probe --write          # regenerate for the current site
+jira-op-site-probe --all --write    # every registered site
+jira-op-site-probe --all --check    # report drift, write nothing
 ```
 
 `--check` exits `3` when the live API disagrees with what is on disk, so it
