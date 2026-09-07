@@ -119,6 +119,12 @@ jira issue create -tStory -s"Summary" --template /path/to/template.md
 
 # Read description from stdin
 echo "Description here" | jira issue create -tTask -s"Summary"
+
+# Editing an existing description: -b, or stdin. `edit` has no --template.
+jira issue edit PROJ-123 --no-input < draft.md
+
+# Snapshot before and after a write — Jira has no undo
+jira issue view PROJ-123 --raw > /tmp/before.json
 ```
 
 **Multi-line content:** The CLI chokes on multi-line strings. Write to `/tmp` first:

@@ -84,6 +84,77 @@ behaviour or operations changed.
 - tribal knowledge assumed — a name, an internal acronym, a decision taken in
   a call nobody linked
 
+## Snapshot before you write, compare after
+
+Jira has no undo, and an edit replaces the whole field. Keep the original
+locally, in the same command sequence as the change:
+
+```bash
+jira issue view PROJ-123 --raw > /tmp/PROJ-123-before.json
+# ... the approved change ...
+jira issue view PROJ-123 --raw > /tmp/PROJ-123-after.json
+diff <(jq -S '.fields' /tmp/PROJ-123-before.json) \
+     <(jq -S '.fields' /tmp/PROJ-123-after.json)
+```
+
+The diff is the evidence that only the intended field moved. Timestamps and
+history change on their own — everything else should not.
+
+Two flag facts, verified on jira-cli 1.7.0:
+
+- `jira issue edit` has **no** `--template`. The description comes from `-b`,
+  or on stdin: `jira issue edit PROJ-123 --no-input < draft.md`.
+- `jira issue comment add` has no `-b`; it takes the body positionally or with
+  `-T/--template`.
+
+Write the final text to a file first either way. It is what gets reviewed, and
+it survives a failed command.
+
+## Comments while the work runs
+
+A comment written at the moment something happens costs nothing and answers
+the question everyone asks later — where did this stand, and when. Jira is
+where that survives; a chat message is not.
+
+| Moment | What goes on the ticket |
+|---|---|
+| work starts | the branch, and what is about to be attempted |
+| approach chosen or changed | the decision and **who approved it** |
+| blocked | what blocks it, who owns the blocker, what was tried |
+| PR opened | the link, and what still needs to happen |
+| tests or checks pass | the command and its result — not "works" |
+| handed over | what is verified, what is not, next owner |
+
+Short forms, each one file for `--template`:
+
+```md
+Started. Branch: feat/PROJ-123-short-name
+Approach: <one line — what is being changed and where>
+```
+
+```md
+Blocked by <what>. Owner: <who>.
+Tried: <what was attempted and what it produced>
+Needs: <the decision, access or fix that unblocks it>
+```
+
+```md
+PR: <url>
+Scope: <what the PR does and does not cover>
+Checks: <command → result>
+```
+
+Rules that keep these useful rather than noisy:
+
+- **One comment per event, not per hour.** A ticket read six months later is
+  ruined by a running commentary and helped by five dated facts.
+- **Name people for decisions**, never for blame.
+- **Never paste a token, a full log or a stack trace.** Link the build, quote
+  the decisive line.
+- **A comment does not change status.** Transition separately, and only when
+  asked — see the safety rules in `SKILL.md`.
+- **Ask before publishing.** Drafting is free; publishing notifies watchers.
+
 ## The verification comment
 
 When the work is done, the evidence goes on the ticket as a comment, not into

@@ -45,6 +45,41 @@ curl -s -u "$E:$JIRA_API_TOKEN" \
       ([.body | .. | .text? // empty] | join(" "))'
 ```
 
+### Code attached to the ticket
+
+Branches, pull requests, builds and deployments linked to an issue do not live
+in the issue fields. They come from the development-information API, which
+takes the numeric issue **id**, not the key:
+
+```bash
+ID=$(curl -s -u "$E:$JIRA_API_TOKEN" "$S/rest/api/3/issue/<KEY>?fields=id" | jq -r .id)
+
+# what exists at all, and which integration holds it
+curl -s -u "$E:$JIRA_API_TOKEN" "$S/rest/dev-status/latest/issue/summary?issueId=$ID" \
+  | jq -c '.summary | with_entries(.value |= (.overall // {} | {count: .count}))'
+```
+
+A count of `0` everywhere means nothing is linked — the work may still exist,
+just not connected to the ticket. Say that rather than reporting "no code".
+
+To read the entries, pass the integration name from
+`summary.<type>.byInstanceType` as `applicationType` — `bitbucket`, `github`,
+`gitlab`. A wrong one returns an empty list rather than an error, which is easy
+to misread as "no pull requests":
+
+```bash
+curl -s -u "$E:$JIRA_API_TOKEN" \
+  "$S/rest/dev-status/latest/issue/detail?issueId=$ID&applicationType=bitbucket&dataType=pullrequest" \
+  | jq -c '.detail[0].pullRequests[]? | {status, name, url, lastUpdate}'
+```
+
+`dataType` also takes `branch`, `repository` and `build`. The endpoint is not
+part of the documented REST API and can change; when it returns nothing,
+report that the link could not be read, not that the work does not exist.
+
+A PR shown as `OPEN` while the ticket says the work is finished is the most
+common real finding here — worth stating, without turning it into a verdict.
+
 ## What to do with it
 
 **Keep three lists apart, and label them in the answer:**
