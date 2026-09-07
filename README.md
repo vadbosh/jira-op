@@ -151,8 +151,9 @@ Stated plainly, because a skill that reads like an integration invites the
 assumption that it is one.
 
 - **It does not publish the weekly report.** No Slack, no email, no Confluence,
-  no comment on a ticket. It writes a text file next to you and hands you the
-  path; where that text goes is your decision and your paste.
+  no comment on a ticket. It writes a text file into the project working
+  directory and hands you the path; where that text goes is your decision and
+  your paste.
 - **It does not write to Jira on its own.** Create, edit, transition and comment
   each wait for approval of that specific change. Approving one create does not
   approve the next.

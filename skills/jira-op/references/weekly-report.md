@@ -116,15 +116,16 @@ about it in the report.
 
 ## 3. Where the report goes
 
-**A file in the current working directory, and only its path in the reply.**
+**A file in the project working directory, and only its path in the reply.**
 
 ```
 ./weekly-update-<WEEK_START>_<WEEK_END>.txt      e.g. weekly-update-2026-08-31_2026-09-06.txt
 ```
 
-The directory is the one the assistant was started in — do not choose another,
-do not create a folder for it, do not write it anywhere under `~/.claude`,
-`~/.codex` or `~/.config/opencode`.
+That is the project directory the assistant was started in — `pwd` at the
+start of the session. Do not choose another, do not create a folder for it, do
+not put it in a temporary directory, and never write it under `~/.claude`,
+`~/.codex` or `~/.config/opencode`: those hold the skill, not the work.
 
 - **Plain text, `.txt`.** No Markdown: no `**bold**`, no backticks, no `#`
   headings, no tables, no bullet characters other than a plain `-`. The section

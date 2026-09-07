@@ -24,7 +24,7 @@ Export the token **before** `jira init` — it authenticates while it asks.
 | `what's in the active sprint` | the sprint that actually contains today |
 | `investigate PROJ-123` | read-only: facts, hypotheses, what could not be checked |
 | `file a ticket: <what you did>` | draft first — nothing is created until you say yes |
-| `weekly report` | writes a `.txt` next to you and answers with its path |
+| `weekly report` | writes a `.txt` into the project working directory, answers with its path |
 
 ## Filing a ticket
 
@@ -43,7 +43,8 @@ Calendar week, Monday to Sunday; run it Friday evening or Saturday morning.
 You will be asked whether the window contained vacation or holidays.
 
 **It writes a file and tells you the path — nothing else.** Plain text with the
-emoji section markers, in the directory the assistant was started in:
+emoji section markers, in the project working directory — the one the assistant
+was started in:
 
 ```
 weekly-update-2026-08-31_2026-09-06.txt
