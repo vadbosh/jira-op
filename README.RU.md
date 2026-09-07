@@ -185,16 +185,16 @@ weekly report for last week
 Разрешает их один файл:
 
 ```bash
-tools/site-probe.sh --write          # обычный путь
+jira-op-site-probe --write           # обычный путь
 ```
 
 Либо пусть его соберёт probe — это обычный путь, `install.sh` и `add-site.sh`
 вызывают его сами, когда файла сайта нет:
 
 ```bash
-tools/site-probe.sh --write          # текущий сайт
-tools/site-probe.sh --all --write    # все заведённые сайты
-tools/site-probe.sh --all --check    # отчёт о расхождении, без записи
+jira-op-site-probe --write           # текущий сайт
+jira-op-site-probe --all --write     # все заведённые сайты
+jira-op-site-probe --all --check     # отчёт о расхождении, без записи
 ```
 
 Он читает конфигурацию, которую уже записал jira-cli, и делает проход по API

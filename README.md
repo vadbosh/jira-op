@@ -184,16 +184,16 @@ The skill files carry `<PLACEHOLDER>` names, never a hard-coded site. One file
 resolves them:
 
 ```bash
-tools/site-probe.sh --write          # the normal path
+jira-op-site-probe --write           # the normal path
 ```
 
 Or let the probe write it, which is the normal path — `install.sh` and
 `add-site.sh` already call it when no site file exists:
 
 ```bash
-tools/site-probe.sh --write          # current site
-tools/site-probe.sh --all --write    # every registered site
-tools/site-probe.sh --all --check    # drift report, writes nothing
+jira-op-site-probe --write           # current site
+jira-op-site-probe --all --write     # every registered site
+jira-op-site-probe --all --check     # drift report, writes nothing
 ```
 
 It reads the config jira-cli already wrote plus a read-only pass over the API,

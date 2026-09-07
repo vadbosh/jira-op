@@ -19,7 +19,7 @@ and without it in the environment it fails with `401` halfway through.
 
 **You do not run the site probe.** `install.sh` reads your project's real field
 ids by itself when no site file exists yet, and `add-site.sh` does the same for
-a new site. `tools/site-probe.sh --write` is only for later — when Jira's
+a new site. `jira-op-site-probe --write` is only for later — when Jira's
 configuration changed under you:
 
 ```bash

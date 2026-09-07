@@ -240,7 +240,7 @@ touch your crontab. Add it yourself if you want it, adjusting the paths:
 ```cron
 # weekly, read-only; exit 3 and a diff in the log when a project changed
 23 9 * * 1 PATH=/usr/local/bin:/usr/bin:/bin HOME=/home/you \
-  /path/to/jira-op/tools/site-probe.sh --all --check \
+  /home/you/.local/bin/jira-op-site-probe --all --check \
   >> /home/you/.local/state/jira-op/site-check.log 2>&1
 ```
 
@@ -257,7 +257,7 @@ machinery works as it is: with no variable, the tool finds the assistant
 directories itself and writes to all of them:
 
 ```
-$ tools/site-probe.sh --check
+$ jira-op-site-probe --check
 no drift: ~/.claude/skills/jira-op/SITE.md
 no drift: ~/.config/opencode/skills/jira-op/SITE.md
 no drift: ~/.codex/skills/jira-op/SITE.md
@@ -278,7 +278,7 @@ one run.
 
 **The symptom, if you skip this:** the site file is written, everything works,
 and after the next sync or dotfiles apply the skill is back to placeholders.
-`tools/site-probe.sh --check` names it — `missing: <path> — run with --write`.
+`jira-op-site-probe --check` names it — `missing: <path> — run with --write`.
 Every write prints the paths it touched, so comparing them once with where your
 skill actually lives settles it.
 

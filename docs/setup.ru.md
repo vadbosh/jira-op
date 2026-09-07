@@ -242,7 +242,7 @@ jira-op-site-probe --all --check    # показать расхождение, �
 ```cron
 # раз в неделю, только чтение; при изменении проекта — код 3 и diff в логе
 23 9 * * 1 PATH=/usr/local/bin:/usr/bin:/bin HOME=/home/you \
-  /path/to/jira-op/tools/site-probe.sh --all --check \
+  /home/you/.local/bin/jira-op-site-probe --all --check \
   >> /home/you/.local/state/jira-op/site-check.log 2>&1
 ```
 
@@ -259,7 +259,7 @@ cron запускается с урезанным окружением: зада
 ассистентов и пишет во все.
 
 ```
-$ tools/site-probe.sh --check
+$ jira-op-site-probe --check
 no drift: ~/.claude/skills/jira-op/SITE.md
 no drift: ~/.config/opencode/skills/jira-op/SITE.md
 no drift: ~/.codex/skills/jira-op/SITE.md
@@ -280,7 +280,7 @@ export JIRA_OP_SKILL_DIR=~/config-canon/skills/jira-op
 
 **Как это выглядит, если пропустить:** файл сайта записан, всё работает, а
 после очередной синхронизации скил снова с плейсхолдерами.
-`tools/site-probe.sh --check` это назовёт — `missing: <путь> — run with --write`.
+`jira-op-site-probe --check` это назовёт — `missing: <путь> — run with --write`.
 Каждая запись печатает пути, по которым прошла, так что достаточно один раз
 сверить их с тем, где у вас на самом деле лежит скил.
 
