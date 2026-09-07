@@ -47,11 +47,15 @@ jira issue list -q"project = <PROJECT> AND assignee = currentUser() AND updated 
   --plain --columns key,type,status,summary,updated --paginate 15
 
 # what actually finished — the terminal status here is "<STATUS_DONE>", not "Done"
-jira issue list -q"project = <PROJECT> AND assignee = currentUser() AND status CHANGED TO \"Completed\" DURING (\"$WEEK_START\", \"$NEXT_MON\")" \
+jira issue list -q"project = <PROJECT> AND assignee = currentUser() AND status CHANGED TO \"<STATUS_DONE>\" DURING (\"$WEEK_START\", \"$NEXT_MON\")" \
   --plain --columns key,status,summary --paginate 15
 
-# what is still open and carries into next week
-jira issue list -q'project = <PROJECT> AND assignee = currentUser() AND status = "In Progress"' \
+# what was in flight at any point in the window — the backbone of the report
+jira issue list -q"project = <PROJECT> AND assignee = currentUser() AND status WAS \"<STATUS_IN_PROGRESS>\" DURING (\"$WEEK_START\", \"$NEXT_MON\")" \
+  --plain --columns key,status,summary --paginate 15
+
+# what is still open right now and carries into next week
+jira issue list -q'project = <PROJECT> AND assignee = currentUser() AND status = "<STATUS_IN_PROGRESS>"' \
   --plain --columns key,status,summary --paginate 15
 
 # the sprint the week belongs to
@@ -174,6 +178,17 @@ Section by section:
   coordination`), then what was investigated or built and what came out of it.
   Work with no ticket — coordination, sprint scoping, reviews — gets a
   paragraph with a label instead of a key. Past tense, no first person.
+
+  **A ticket that was in flight during the window belongs here even if nothing
+  moved on the board.** `status WAS "<STATUS_IN_PROGRESS>" DURING (...)` is the
+  list; a status change is not required. Write what the ticket is about and say
+  plainly that it is in progress. Do not invent progress, do not claim an
+  outcome the ticket does not show, and do not pad the paragraph to match the
+  finished items — two honest sentences are the right length.
+
+  The one case where an in-flight ticket is *not* written up as work: the
+  window is an absence. Then it is named as carried, in the single line that
+  section 1a describes.
 - **⚠️ What didn't go well / Risks** — one line per risk, prefixed with a
   severity marker (🔴 / 🟡), naming the ticket where there is one. Each item
   states **Impact:** and **Mitigation:**. A risk belongs here only when it
@@ -238,6 +253,14 @@ one is not.
 
 Ticket hygiene worth fixing is raised with the user directly, outside the
 report.
+
+**This is not a rule against mentioning open work.** That a ticket was in
+progress during the window is a fact about the work, and it belongs in What
+went well — see that section. What is banned is the tracker's *bookkeeping*:
+ages, carry-over counts, empty fields, missing comments. The test is simple —
+would the sentence survive if the team used a whiteboard instead of Jira? "The
+gateway rollout is in progress" survives. "This has been open since November"
+does not.
 
 ## 4. Style rules
 
