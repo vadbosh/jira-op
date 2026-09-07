@@ -113,25 +113,27 @@ for dir in "${targets[@]}"; do
 done
 
 # A skill with no site file for the active site cannot write anything, so
-# generate one when none exists yet. Best effort: jira-cli may not be
-# configured at this point, which is fine — the message says what to run.
-have_site=0
-for dir in "${targets[@]}"; do
-	for f in "$dir/jira-op"/SITE.md "$dir/jira-op"/SITE.*.md; do
-		[ -e "$f" ] || continue
-		case "$(basename "$f")" in SITE.example.md) continue ;; esac
-		have_site=1
-	done
-done
+# generate one where none exists yet. Per destination, and always with an
+# explicit --skill-dir: without it the probe auto-detects the assistants and
+# would write outside the directory this run was asked to install into.
+# Best effort — jira-cli may not be configured yet, which is fine.
+if [ "$DRY_RUN" = 0 ]; then
+	for dir in "${targets[@]}"; do
+		dest="$dir/jira-op"
+		have_site=0
+		for f in "$dest"/SITE.md "$dest"/SITE.*.md; do
+			[ -e "$f" ] || continue
+			case "$(basename "$f")" in SITE.example.md) continue ;; esac
+			have_site=1
+		done
+		[ "$have_site" = 1 ] && continue
 
-if [ "$have_site" = 0 ] && [ "$DRY_RUN" = 0 ]; then
-	printf '\nNo site file yet — probing the configured Jira...\n'
-	if "$SRC/tools/site-probe.sh" --write 2>/dev/null; then
-		:
-	else
-		printf 'not generated (jira-cli not configured yet?). After jira init, run:\n  %s --write\n' \
-		       "$SRC/tools/site-probe.sh"
-	fi
+		printf '\n%s: no site file yet — probing the configured Jira...\n' "$dest"
+		if ! "$SRC/tools/site-probe.sh" --write --skill-dir "$dest"; then
+			printf 'not generated (jira-cli not configured yet?). After jira init, run:\n  %s --write\n' \
+			       "$SRC/tools/site-probe.sh"
+		fi
+	done
 fi
 
 cat <<EOF
