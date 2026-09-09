@@ -326,27 +326,42 @@ jq -r --arg a "$WEEK_START" --arg b "$NEXT_MON" '
 ' /tmp/cl.json
 ```
 
-A description edit stores **both** texts in full, so the week's additions are a
-plain diff — take the `fromString` of the first change in the window and the
-`toString` of the last:
+A text edit stores **both** versions in full, so the week's additions are a
+plain diff — the `fromString` of the first change in the window against the
+`toString` of the last. The field name is a parameter, so the same pair of
+commands works for the description and for any text custom field the first
+listing showed as changed:
 
 ```bash
-jq -r --arg a "$WEEK_START" --arg b "$NEXT_MON" '
+F=description            # the field name exactly as the first listing printed it
+                         # system fields are lower-case; a custom field is its
+                         # display name, e.g. "Potential Risks"
+
+jq -r --arg a "$WEEK_START" --arg b "$NEXT_MON" --arg f "$F" '
   [ .values[] | select(.created[0:10] >= $a and .created[0:10] < $b)
-    | .items[] | select(.field == "description") ] as $d
+    | .items[] | select(.field == $f) ] as $d
   | if ($d|length) == 0 then "" else ($d[0].fromString // "") end' /tmp/cl.json > /tmp/before.txt
 
-jq -r --arg a "$WEEK_START" --arg b "$NEXT_MON" '
+jq -r --arg a "$WEEK_START" --arg b "$NEXT_MON" --arg f "$F" '
   [ .values[] | select(.created[0:10] >= $a and .created[0:10] < $b)
-    | .items[] | select(.field == "description") ] | last | .toString // ""
+    | .items[] | select(.field == $f) ] | last | .toString // ""
 ' /tmp/cl.json > /tmp/after.txt
 
 diff /tmp/before.txt /tmp/after.txt | grep '^>'
 ```
 
 Measured: a ticket whose description went from 5 lines to 66 inside one window
-returned exactly the 61 added lines. The same changelog carries every custom
-field, so a risk or acceptance field filled during the week shows up too.
+returned exactly the 61 added lines.
+
+The changelog labels a field by **name**, never by id: lower-case for system
+fields, the display name for custom ones. Take it from the first listing rather
+than guessing.
+
+A heading in the create screen is not a field. Text typed under a section
+heading normally lands in the description, and the changelog is what settles
+which field actually moved — measured once where a similarly named custom field
+existed in the project, was absent from the create screen, and was `null` on
+every ticket.
 
 A previous report file, if one is still on disk, is a convenience for wording —
 never the source. Files get deleted and directories move; the changelog is the
