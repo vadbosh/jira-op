@@ -197,9 +197,11 @@ Section by section:
   outcome the ticket does not show, and do not pad the paragraph to match the
   finished items — two honest sentences are the right length.
 
-  The one case where an in-flight ticket is *not* written up as work: the
-  window is an absence. Then it is named as carried, in the single line that
-  section 1a describes.
+  Two cases where an in-flight ticket is *not* written up as work here. The
+  window is an absence — then it is named as carried, in the single line that
+  section 1a describes. Or the ticket has already appeared in earlier reports
+  and nothing moved this week — then section 3c applies and it goes to
+  `🔭 Next week` as one line.
 - **⚠️ What didn't go well / Risks** — one line per risk, prefixed with a
   severity marker (🔴 / 🟡), naming the ticket where there is one. Each item
   states **Impact:** and **Mitigation:**. A risk belongs here only when it
@@ -272,6 +274,55 @@ ages, carry-over counts, empty fields, missing comments. The test is simple —
 would the sentence survive if the team used a whiteboard instead of Jira? "The
 gateway rollout is in progress" survives. "This has been open since November"
 does not.
+
+## 3c. A ticket that spans many weeks
+
+Infrastructure work runs for a month or more, so the same key appears in report
+after report. What makes that read as a stalled ticket is not its length — it
+is the paragraph repeating itself. Section 3b already bans the tracker facts
+that would say "this is old"; this section is about the sentence that says it
+by accident.
+
+**The paragraph reports the week's delta, not the ticket.** What the ticket is
+about is stated once, in the first report it appears in. After that the
+paragraph opens with what changed inside the window:
+
+```
+week 1  PROJ-123 "Gateway controller implementation": Gateway API objects
+        declared for all five entrypoints and applied with every entrypoint
+        disabled — an empty plan, nothing switched yet.
+week 2  PROJ-123: first entrypoint switched, DNS weight raised to 10 for one
+        host; no change in 5xx on either data plane.
+week 3  PROJ-123: two of five entrypoints fully migrated, the nginx side
+        drained.
+```
+
+**Carry a count when the work has countable parts** — entrypoints, clusters,
+services, migrations. "Two of five" moves on its own from week to week and
+shows a rate; prose about the same subject does not. The count is a fact of the
+work, not tracker bookkeeping, so 3b does not touch it.
+
+**Where the delta comes from**, in order: comments written in the window,
+`Update <date>:` lines in the description dated inside it, the changelog, and
+what the user says. If all four are empty, do not restate the ticket in new
+words — ask the user what moved. A paragraph assembled without a source is how
+an invented outcome gets into a report.
+
+**A week with no movement is one line, not a paragraph.** It goes to
+`🔭 Next week` as the committed next step, and the ticket is left out of
+`✅ What went well` for that week. Repeating last week's paragraph is exactly
+the effect this section exists to prevent.
+
+**Two such weeks in a row are a finding, not a line.** Something is holding the
+work: a decision, an access, another team, a window that never opened. Name it
+in `🚩 Decisions Needed` or in `⚠️ Risks` with its Impact and what would
+unblock it. A named blocker reads as control of the situation; a third
+identical paragraph reads as drift.
+
+**Leave the trace during the week, not on Friday.** One comment on the ticket
+at the end of the week — two or three sentences, what changed — makes the next
+report mechanical: last week's comment against this week's. It is also the only
+source that survives a compacted session.
 
 ## 4. Style rules
 
