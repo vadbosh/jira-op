@@ -93,11 +93,32 @@ curl -s -u "$E:$JIRA_API_TOKEN" "$SITE/rest/api/3/issue/<KEY>/transitions" \
 
 | Name used in the skill | Value |
 |---|---|
-| `<STATUS_IN_PROGRESS>` | `In Progress` |
-| `<STATUS_DONE>` | `Done` |
+| `<STATUS_IN_PROGRESS>` | `In Progress` — the one you move a ticket to |
+| `<STATUS_DONE>` | `Done` — the one you close a ticket with |
 
 Transition names are per-workflow. `Done` may not exist; `Completed`,
 `Closed`, `Resolved` and localised names are all common.
+
+**The report needs groups, not single names.** Ask Jira how it categorises
+every status of the project — the category `key` is stable (`new`,
+`indeterminate`, `done`) while its display name is localised:
+
+```bash
+curl -s -u "$E:$JIRA_API_TOKEN" "$SITE/rest/api/3/project/<PROJECT>/statuses" \
+ | jq -r '[.[].statuses[] | {n: .name, k: .statusCategory.key}] | unique_by(.n)
+     | group_by(.k)[] | "\(.[0].k): " + ([.[].n] | sort | join(", "))'
+```
+
+| Name used in the skill | Category | Meaning |
+|---|---|---|
+| `<STATUS_NEW>` | `new` | not started — never appears in the weekly report |
+| `<STATUS_ACTIVE>` | `indeterminate` | being worked on, in any shape |
+| `<STATUS_TERMINAL>` | `done` | closed, including Duplicate and Invalid |
+
+Record them as comma-separated quoted lists, ready to paste into JQL. A real
+board has more than one name per group: nine "not started" names and eleven
+"working" ones is an ordinary result, and a ticket parked in `Ready for QA`
+all week is work, not silence.
 
 ## Sprints
 

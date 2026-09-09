@@ -43,19 +43,23 @@ tickets to make it look busy.
 set -a; . ~/.config/.jira/token.env; set +a
 
 # everything of mine that moved in the window
-jira issue list -q"project = <PROJECT> AND assignee = currentUser() AND updated >= \"$WEEK_START\" AND updated < \"$NEXT_MON\" AND status != \"To Do\"" \
+jira issue list -q"project = <PROJECT> AND assignee = currentUser() AND updated >= \"$WEEK_START\" AND updated < \"$NEXT_MON\" AND status NOT IN (<STATUS_NEW>)" \
   --plain --columns key,type,status,summary,updated --paginate 15
 
-# what actually finished — the terminal status here is "<STATUS_DONE>", not "Done"
-jira issue list -q"project = <PROJECT> AND assignee = currentUser() AND status CHANGED TO \"<STATUS_DONE>\" DURING (\"$WEEK_START\", \"$NEXT_MON\")" \
+# what closed in the window — every status in the Closed group, not just one:
+# a ticket closed as Duplicate closed
+jira issue list -q"project = <PROJECT> AND assignee = currentUser() AND status CHANGED TO (<STATUS_TERMINAL>) DURING (\"$WEEK_START\", \"$NEXT_MON\")" \
   --plain --columns key,status,summary --paginate 15
 
-# what was in flight at any point in the window — the backbone of the report
-jira issue list -q"project = <PROJECT> AND assignee = currentUser() AND status WAS \"<STATUS_IN_PROGRESS>\" DURING (\"$WEEK_START\", \"$NEXT_MON\")" \
+# what was in flight at any point in the window — the backbone of the report.
+# Every working status, not only "In Progress": a week spent in Team Review or
+# Blocked is a week of work, and on some boards the ticket never passes through
+# a status literally called In Progress at all.
+jira issue list -q"project = <PROJECT> AND assignee = currentUser() AND status WAS IN (<STATUS_ACTIVE>) DURING (\"$WEEK_START\", \"$NEXT_MON\")" \
   --plain --columns key,status,summary --paginate 15
 
 # what is still open right now and carries into next week
-jira issue list -q'project = <PROJECT> AND assignee = currentUser() AND status = "<STATUS_IN_PROGRESS>"' \
+jira issue list -q'project = <PROJECT> AND assignee = currentUser() AND status IN (<STATUS_ACTIVE>)' \
   --plain --columns key,status,summary --paginate 15
 
 # the sprint the week belongs to
@@ -64,10 +68,17 @@ jira sprint list --state active --plain
 
 Two constraints on these queries:
 
-- **`To Do` tickets never appear in the report** — not in What went well, not
-  in Risks, not in Decisions Needed. Unstarted work is sprint planning, not a
-  week's engineering record. Filter it out at the query, so it cannot leak in
-  through a carried-over ticket.
+- **Unstarted work never appears in the report** — not in What went well, not
+  in Risks, not in Decisions Needed. That is the whole `To Do` **category**
+  (`statusCategory` `new`), which on some boards is nine status names, not one.
+  Filter it out at the query, so it cannot leak in through a carried-over
+  ticket.
+- **Statuses come in three groups, and `SITE.md` lists them** —
+  `<STATUS_NEW>` (unstarted), `<STATUS_ACTIVE>` (working) and
+  `<STATUS_TERMINAL>` (closed), exactly as Jira categorises them. Use the groups,
+  never a single hardcoded name: `In Progress` and `Done` do not exist on every
+  board, and a ticket that sat in `Ready for QA` all week did not stop being
+  worked on.
 - **`ORDER BY` inside `-q` fails.** jira-cli appends its own clause and the
   server answers `400 Bad Request: Expecting ',' but got 'ORDER'`. Sort with
   `--order-by`, or leave the rows unsorted.

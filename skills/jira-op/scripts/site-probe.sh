@@ -144,6 +144,10 @@ DISPLAY_NAME="$(printf '%s' "$MYSELF" | jq -r '.displayName')"
 # One issue, used to read the workflow's transition names. Deliberately the
 # OLDEST one: the newest changes whenever anybody files a ticket, and --check
 # then reports drift every week over a sample key that means nothing.
+# Statuses are defined per issue type; blank means "every type in the project",
+# which is what a report about a whole project needs.
+TYPE_FOR_STATUSES="${JIRA_OP_STATUS_TYPE:-}"
+
 SAMPLE="$(jira issue list -p "$PROJECT" --order-by created --reverse --plain --no-headers --columns key --paginate 1 2>/dev/null | awk 'NR==1{print $1}')"
 
 # Every list below is sorted explicitly. The API returns object keys and array
@@ -202,6 +206,22 @@ EOF
 	done
 
 	printf '## Statuses\n\n'
+	printf 'Grouped by the category Jira itself assigns them. The report uses these\ngroups, not one hardcoded name: a week spent in Team Review is work, and a\nticket closed as Duplicate is closed.\n\n'
+	printf '| Category | Statuses |\n|---|---|\n'
+	# statusCategory.key, not .name: the name is localised — a Russian-language
+	# Jira answers "В работе" — while the key is always new / indeterminate / done.
+	api "/rest/api/3/project/$PROJECT/statuses" \
+	 | jq -r --arg t "$TYPE_FOR_STATUSES" '
+	     [.[] | select($t == "" or .name == $t) | .statuses[]
+	        | {n: .name, k: .statusCategory.key}]
+	     | unique_by(.n)
+	     | group_by(.k)
+	     | sort_by(. as $g | ["new","indeterminate","done"] | index($g[0].k))[]
+	     | "| \(if .[0].k == "new" then "To Do (new)"
+	            elif .[0].k == "indeterminate" then "Working (indeterminate)"
+	            else "Closed (done)" end) | " + ([.[].n] | sort | join(", ")) + " |"' \
+	 || printf '| — | unreadable |\n'
+	printf '\n`<STATUS_ACTIVE>` is the Working row, `<STATUS_TERMINAL>` the Closed row,\nand `<STATUS_IN_PROGRESS>` / `<STATUS_DONE>` are the single names used when\nmoving one ticket.\n\n'
 	if [ -n "$SAMPLE" ]; then
 		printf 'Transitions available on `%s`:\n\n```\n' "$SAMPLE"
 		api "/rest/api/3/issue/$SAMPLE/transitions" | jq -r '.transitions | sort_by(.id|tonumber)[] | "\(.id)\t\(.name)"'
