@@ -39,9 +39,12 @@ $SKILL/scripts/site-probe.sh --all --write   # refresh every site
 
 ## Filing a ticket
 
-You will be asked exactly two things: **story points** and **which sprint**.
-Everything else is derived or drafted. The epic is never set — attach it in the
-UI if it needs one.
+You will be asked exactly three things: **story points**, **which sprint**,
+and an **End Date** (`none` is fine). Everything else is derived or drafted.
+The epic is never set — attach it in the UI if it needs one.
+
+Then the whole draft is printed — description, risks and acceptance criteria
+included — and nothing is created until you approve it.
 
 The draft is in English whatever language you asked in. Review it, then say
 create. After the write the ticket is read back and the stored values reported.

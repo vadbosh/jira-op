@@ -4,8 +4,10 @@
 actually repeats every week: file a ticket that satisfies the project's required
 fields, and write the weekly engineering update from the tickets.**
 
-It drives [jira-cli](https://github.com/ankitpokhrel/jira-cli) — no MCP server,
-no API wrapper to install. Works in Claude Code, Codex and Opencode.
+It drives [jira-cli](https://github.com/ankitpokhrel/jira-cli) for reads and
+transitions, and Jira's REST API for the writes the CLI cannot do reliably —
+no MCP server, no API wrapper to install. Works in Claude Code, Codex and
+Opencode.
 
 **In a hurry?** → [Fast start](FAST-START.md) · [Быстрый старт](FAST-START.RU.md)
 
@@ -14,8 +16,8 @@ no API wrapper to install. Works in Claude Code, Codex and Opencode.
 
 >️ **It needs your site's values before it can write anything.** Issue type,
 > custom field ids, statuses and board number differ per project. They live in
-> one file — copy `skills/jira-op/SITE.example.md` to `SITE.md` and fill it from
-> the live API. See [Configuring it](#configuring-it).
+> one file, `SITE.md`, which `install.sh` generates from the live API on first
+> run. See [Configuring it](#configuring-it).
 
 ---
 
@@ -106,10 +108,17 @@ point.
 file a ticket: updated the node AMI on three clusters
 ```
 
-The assistant asks for the two values with no safe default — story points and
-which sprint — drafts the ticket, shows it, and creates nothing until you say
-so. The draft is in English regardless of the language you asked in, because
-the ticket is read by people who do not speak it.
+The assistant asks the three values it must not guess — story points, which
+sprint, and an End Date (`none` is a valid answer) — then prints the **whole**
+draft: summary, description, and every field it filled in for you, risks and
+acceptance criteria included. Nothing is created until you say so. The draft is
+in English regardless of the language you asked in, because the ticket is read
+by people who do not speak it.
+
+The summary stays generic — `Scheduled EKS cluster maintenance`, not
+`… node AMI and add-on updates across three clusters`. Counts, versions and
+component lists belong in the body: a board is read at a glance, and those
+details rot while the body stays right.
 
 **The weekly report:**
 
@@ -130,8 +139,10 @@ risks, decisions made, next week. Two rules make it readable:
 - **facts of the work only.** Never how long a ticket has been open, how many
   sprints it carried through, or that its fields are empty. That is board
   hygiene; it belongs in a conversation, not in a report to a team lead.
-- **`To Do` tickets do not appear** in any section. Unstarted work is sprint
-  planning.
+- **Unstarted work does not appear** in any section — the whole `To Do`
+  *category*, which on some boards is nine status names. Everything Jira
+  categorises as working counts as work, so a week spent in `Team Review` or
+  `Blocked` is reported, not dropped.
 
 ## Safety
 
@@ -254,6 +265,12 @@ Found the hard way, all against 1.7.0:
 - `jira board list` has no `--plain`, and its "No boards found in project X"
   names the project from your config, not the one you asked about — pass `-p`.
 - Epic membership is `jira epic add`, not `jira issue link`.
+- **`jira issue create` hangs when stdin is not a terminal** — a subprocess, a
+  CI runner, an assistant. `--no-input` skips the TUI, not the read that
+  blocks ([#948](https://github.com/ankitpokhrel/jira-cli/issues/948)). Append
+  `</dev/null`, or create through REST as the skill does.
+- The v2 REST API reads a plain-text description as **wiki markup**, not
+  Markdown: `## Scope` becomes a numbered list. Use `h3.`, `*`, `{{code}}`.
 
 ## Licence
 
