@@ -159,11 +159,37 @@ EOF
 Wiki markup in one line: `h3.` heading, `*` bullet, `#` numbered, `{{code}}`
 inline, `{code}…{code}` block, `[text|url]` link, `*bold*`, `_italic_`.
 
-**2. Show the draft and wait.** Nothing is created before the user approves
-this specific ticket. **A create cannot be undone here** — the account has
-`DELETE_ISSUES: false` on this project (see `SITE.md`), so a mistaken ticket
-stays on the board until an administrator removes it. Never create a ticket to
+**2. Print the whole draft and wait.** Not a summary of it, not "drafted a
+ticket about X" — the text that is about to be sent, in the reply, so the user
+reads exactly what will exist:
+
+```
+Summary:      <one line>
+Type:         <ISSUE_TYPE>        Assignee: <who>
+Sprint:       <name (id)>         Points: <N>        End Date: <date | none>
+
+Description:
+<the full body, as written>
+
+Potential Risks:
+<the full text>
+
+Acceptance Test:
+<the full text>
+```
+
+**Every field, including the ones the assistant wrote itself.** Risks and
+acceptance criteria are usually drafted from the work rather than dictated —
+that is fine, and it is exactly why they have to be read before they are
+published. A field nobody read is a field nobody agreed to.
+
+This is the one thing the report of the create cannot make up for. Afterwards
+the text is on a board other people watch, and on most accounts here it cannot
+be deleted: `DELETE_ISSUES: false` (see `SITE.md`). Never create a ticket to
 test the recipe.
+
+A clone of an existing ticket is not an exception. "Same as PROJ-123" hides
+whichever sentence was rewritten, and the rewrite is the part worth reading.
 
 **3. Find the sprint id.** A board accumulates sprints left in state `active`
 by other teams, sometimes years after they ended, so `--state active` alone

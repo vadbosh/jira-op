@@ -230,7 +230,10 @@ publish a Russian field and translate afterwards.
 ## NEVER
 
 - **Never create a ticket that was not explicitly requested.** Drafting is
-  free; publishing is not. Show the draft and the exact command, then wait.
+  free; publishing is not. Print the **entire** draft — summary, description,
+  and every field the assistant filled in, including risks and acceptance
+  criteria — then wait. A field nobody read is a field nobody agreed to, and a
+  ticket cloned from another one hides its rewrite behind "same as PROJ-123".
 - **Never transition without reading the current status first.** `To Do` →
   `Done` can fail when the workflow requires an intermediate state.
 - **Never use `--no-input` without every mandatory field.** The <PROJECT> create
