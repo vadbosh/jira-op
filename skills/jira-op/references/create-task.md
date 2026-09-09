@@ -105,6 +105,25 @@ command an assistant, a CI job or an editor plugin runs — see "Why not the
 CLI" below. The CLI stays for reads and for transitions, where it is the
 shorter tool.
 
+**The summary is generic; the detail lives in the body.**
+
+A summary names the work, not its parameters. Cluster counts, version numbers,
+component lists, hostnames, ticket-specific values — none of that belongs in
+the title; it belongs in the description and the fields, which is what the
+issue view groups under *Key details*.
+
+```
+good   Scheduled EKS cluster maintenance
+good   Terraform (IaaC) tasks: current and permanent
+bad    Scheduled EKS maintenance: node AMI and add-on updates across three clusters
+bad    Rotate passwords for 47 users in us-east-1 before 2026-09-30
+```
+
+Two reasons it matters here. A board is read at a glance, and a title carrying
+four facts is read as none. And a detail in the title goes stale the moment the
+work changes — three clusters become four, and the title now lies while the
+description is still right.
+
 **0. Ask three questions before drafting.** All three in one go, and none of
 them guessed:
 

@@ -11,15 +11,22 @@ from it.
 
 - an action verb first: `Add`, `Update`, `Implement`, `Fix`, `Investigate`,
   `Migrate`
-- name the surface: the service, the cluster, the page, the module
+- name the surface — the service, the cluster, the page, the module — and stop
+  there
+- **generic, not parametric.** Counts, versions, hostnames, dates and component
+  lists go in the body, not the title. A board is read at a glance, and a title
+  carrying four facts is read as none; worse, those facts go stale while the
+  body is still correct
 - 70–80 characters, no more
 - a domain marker (`[BE]`, `[FE]`, `[QA]`, `[Spike]`) **only if the project
   already uses them** — check existing tickets, do not introduce a convention
 
 ```
-good   Migrate EKS node groups to AL2023 AMI in the staging cluster
-bad    AL2023                                (a noun, answers nothing)
-bad    Fix the thing that broke yesterday    (no surface, no verb, no date)
+good   Migrate EKS node groups to a new AMI in the staging cluster
+bad    AL2023                                     (a noun, answers nothing)
+bad    Fix the thing that broke yesterday         (no surface, no verb)
+bad    Migrate 12 EKS node groups to AL2023 v1.31 across three clusters
+                                                  (the body's job, and it rots)
 ```
 
 ## Body sections
