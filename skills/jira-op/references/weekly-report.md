@@ -212,12 +212,41 @@ Section by section:
   else to answer. `None this week.` when there are none. Do not invent items.
 - **🆘 Escalations / Help Needed** — where the team is stuck and needs a
   person, an access, or a priority call. Same rule.
-- **✅ What went well** — one paragraph per item, starting with the key and
-  the ticket title in quotes, then a short label of the nature of the work
+- **✅ What went well** — **two sentences per item, three at the outside.**
+  The key and the title in quotes, a short label of the nature of the work
   (`Query optimization`, `Production issue investigation`, `Cross-team
-  coordination`), then what was investigated or built and what came out of it.
-  Work with no ticket — coordination, sprint scoping, reviews — gets a
-  paragraph with a label instead of a key. Past tense, no first person.
+  coordination`), what was done and what came out of it. Work with no ticket —
+  coordination, sprint scoping, reviews — gets the same two sentences with a
+  label instead of a key. Past tense, no first person.
+
+  **This section is a summary, not a retelling of the ticket.** The reader
+  scans six or eight items in a minute and opens the ticket when they want
+  more; every sentence that reproduces what the ticket already says costs them
+  that minute and adds nothing they could not get from the link.
+
+  So: **no enumerations of components, versions, hostnames or file paths.**
+  Give the count and the shape — "about two dozen add-on charts", "three
+  clusters", "five entrypoints" — and leave the list where it belongs. Same for
+  acceptance criteria: say that they are now checkable, not what each one
+  checks.
+
+  ```
+  too long   OP-123 "Scheduled cluster maintenance": scope definition. The
+             maintenance now covers the node AMI, cluster add-ons and plugins,
+             the pinned chart versions for those add-ons — among them cilium,
+             cert-manager, the load-balancer controller, the CSI driver, the
+             autoscaler, keda, fluent-bit and the metrics stack — and the
+             module and provider versions used to deploy them. Acceptance
+             criteria were written to be checkable rather than descriptive:
+             a clean plan on each cluster, every node Ready on the new AMI, no
+             pod left in CrashLoopBackOff, and the lock file unchanged after an
+             upgrade run, which is what proves the versions are pinned.
+  right      OP-123 "Scheduled cluster maintenance": scope definition. The
+             monthly update now covers the node AMI, the add-ons and the
+             pinned chart, module and provider versions — about two dozen
+             charts per production cluster — with checkable acceptance criteria
+             and a dev-cluster rehearsal before production.
+  ```
 
   **A ticket that was in flight during the window belongs here even if nothing
   moved on the board.** `status WAS "<STATUS_IN_PROGRESS>" DURING (...)` is the
@@ -471,7 +500,10 @@ source that survives a compacted session.
   ticket that produced them — that is how scope growth becomes visible.
 - Never claim something is fixed unless a ticket, a comment or a command
   output says so. Partially resolved goes under Risks, with what remains.
-- Length: an item that needs more than four sentences is probably two items.
+- Length: two sentences per item, three at the outside. A third sentence that
+  is still not enough means the item is two items, or the detail belongs in the
+  ticket. The whole file fits on one screen — that is the working limit, and it
+  is what makes the report read as a summary rather than as a status meeting.
 - **The file is plain text.** Labels that appear in bold in this reference —
   Impact, Mitigation, Why, Decision maker, Owner — are written as
   `Impact:` in the file, with no asterisks and no backticks. Wrap at about 80
