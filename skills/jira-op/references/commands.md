@@ -131,20 +131,39 @@ jira issue view PROJ-123 --raw > /tmp/before.json
 **Multi-line content:** The CLI chokes on multi-line strings. Write to `/tmp` first:
 
 ```bash
-cat > /tmp/jira_body.md <<'EOF'
-## Description
+cat > /tmp/jira_body.txt <<'EOF'
+h3. Description
+
 User needs ability to export data...
 
-## Acceptance Criteria
-- Export works for CSV
-- Export works for JSON
+h3. Acceptance criteria
+
+# Export works for CSV
+# Export works for JSON
 EOF
 
 jira issue create --no-input \
   -tStory \
   -pPROJ \
   -s"Add export functionality" \
-  -b"$(cat /tmp/jira_body.md)"
+  -b"$(cat /tmp/jira_body.txt)" </dev/null
+```
+
+**The body is wiki markup, not Markdown** — Jira converts it server-side by
+wiki rules whichever path sends it. `## Description` becomes a numbered list,
+`**bold**` stays literal asterisks, and `1.` is not a list marker at all: those
+lines arrive as paragraphs with the digits inside them. Headings are `h3.`,
+bullets `*`, numbered items `#`, one item per line. Same rules for the textarea
+custom fields.
+
+Read it back and check the block types, because the write returns 204 either
+way:
+
+```bash
+jira issue view PROJ-123 --raw \
+  | jq -r '[.fields.description.content[].type] | group_by(.)
+           | map("\(.[0])=\(length)") | join(" ")'
+# heading=4 ... = accepted    orderedList where headings were meant = Markdown
 ```
 
 ---

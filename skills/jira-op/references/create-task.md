@@ -178,6 +178,24 @@ EOF
 Wiki markup in one line: `h3.` heading, `*` bullet, `#` numbered, `{{code}}`
 inline, `{code}…{code}` block, `[text|url]` link, `*bold*`, `_italic_`.
 
+**A numbered list is `#`, never `1.`** — the same trap as `## Scope`, in the
+other direction. `1.` is not a marker at all: the lines come back as plain
+paragraphs with the digits inside them, which reads as a list in the raw text
+and is not one on the screen. Measured on OP-243: `1.`…`6.` produced
+`paragraph=2`, the same text with `#` produced `orderedList=1`.
+
+**One list item is one line.** A wrapped item continues the previous one, so a
+long item stays on a long line; a blank line inside the list ends it.
+
+**The same converter runs on the textarea custom fields** — `Potential Risks`,
+`Acceptance Test`. Whatever holds for the description holds for them, and they
+are checked the same way, by their own field id:
+
+```bash
+jq -r '[.fields.customfield_XXXXX.content[]?.type] | group_by(.)
+       | map("\(.[0])=\(length)") | join(" ")' /tmp/read-back.json
+```
+
 **2. Print the whole draft and wait.** Not a summary of it, not "drafted a
 ticket about X" — the text that is about to be sent, in the reply, so the user
 reads exactly what will exist:

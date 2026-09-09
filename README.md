@@ -271,6 +271,8 @@ Found the hard way, all against 1.7.0:
   `</dev/null`, or create through REST as the skill does.
 - The v2 REST API reads a plain-text description as **wiki markup**, not
   Markdown: `## Scope` becomes a numbered list. Use `h3.`, `*`, `{{code}}`.
+- A numbered list is `#`. `1.` is not a marker — those lines arrive as
+  paragraphs with the digits in them, and one list item must fit on one line.
 
 ## Licence
 
