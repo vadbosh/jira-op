@@ -91,7 +91,7 @@ jira issue list -q'project = <PROJECT> AND assignee = currentUser() AND status I
 jira sprint list --state active --plain
 ```
 
-Two constraints on these queries:
+Constraints on these queries:
 
 - **Unstarted work never appears in the report** — not in What went well, not
   in Risks, not in Decisions Needed. That is the whole `To Do` **category**
@@ -107,6 +107,23 @@ Two constraints on these queries:
 - **`ORDER BY` inside `-q` fails.** jira-cli appends its own clause and the
   server answers `400 Bad Request: Expecting ',' but got 'ORDER'`. Sort with
   `--order-by`, or leave the rows unsorted.
+- **The work is reported at one level, and that level is the ticket that was
+  worked on.** Epic membership changes nothing: a ticket inside an epic is an
+  ordinary item, listed by its own key. What must not happen is the same work
+  appearing twice — as a container and again as its contents. So a container
+  that the query returns alongside its children is dropped from the report: an
+  epic when its own tickets are there, a parent when its sub-tasks are. Report
+  the container instead only when the week's work sits on it directly.
+
+  In practice an epic rarely reaches the report at all — a container usually
+  stays in the unstarted category, which the first constraint already filters
+  out. The rule matters for the case where someone moves it into a working
+  status and assigns it.
+
+  Name the epic in an item only when two or more of its tickets moved in the
+  same week, and then once, as a clause: it saves the reader from reconstructing
+  the relationship. With a single ticket the epic name is noise — the reader
+  opens the ticket if they want the hierarchy.
 
 Default page size for these listings is `--paginate 15`; the CLI default of 8
 silently truncates a normal week.
