@@ -86,6 +86,13 @@ Two constraints on these queries:
 Default page size for these listings is `--paginate 15`; the CLI default of 8
 silently truncates a normal week.
 
+Read the previous report as well, when there is one — it is what a ticket
+running across several weeks is measured against, per section 3c:
+
+```bash
+ls -1 weekly-update-*.txt | tail -1
+```
+
 For anything that needs the reasoning, not the title, read the ticket:
 
 ```bash
@@ -283,6 +290,30 @@ is the paragraph repeating itself. Section 3b already bans the tracker facts
 that would say "this is old"; this section is about the sentence that says it
 by accident.
 
+**Such a ticket is not split up to make the report easier.** One ticket
+covering a month of scheduled work is a legitimate shape, and the report adapts
+to it rather than the other way round. Do not propose sub-tasks or phase
+tickets for reporting reasons; propose them only when the *work* needs separate
+owners, sprints or estimates.
+
+**It appears in every report that its window touches — without exception.**
+A long ticket that quietly drops out of a report reads as abandoned, and the
+next report that mentions it has to explain a gap that never existed. It is in
+`✅ What went well` when something moved, in `🔭 Next week` when nothing did,
+and in `⚠️ Risks` or `🚩 Decisions Needed` when something holds it. Never in
+none of them.
+
+**Recognise the shape from the ticket, not from a list of keys.** Two markers,
+either one is enough:
+
+- its End Date, target date or sprint end falls beyond the end of the window
+  being reported;
+- the same key appears in the previous report file in the project directory.
+
+Read that previous file before writing — it is the only reliable record of what
+has already been said about the ticket, and it is what keeps this week's
+sentence from repeating last week's.
+
 **The paragraph reports the week's delta, not the ticket.** What the ticket is
 about is stated once, in the first report it appears in. After that the
 paragraph opens with what changed inside the window:
@@ -308,10 +339,26 @@ what the user says. If all four are empty, do not restate the ticket in new
 words — ask the user what moved. A paragraph assembled without a source is how
 an invented outcome gets into a report.
 
-**A week with no movement is one line, not a paragraph.** It goes to
-`🔭 Next week` as the committed next step, and the ticket is left out of
-`✅ What went well` for that week. Repeating last week's paragraph is exactly
-the effect this section exists to prevent.
+**When the user keeps the ticket current, the ticket is the source.** Some
+tickets are maintained as the work runs: the user asks for the real work to be
+written into the description as it happens, so the description accumulates
+dated blocks. For those, the week's delta is whatever carries a date inside the
+window — no interviewing needed, and nothing that is not there may be added.
+
+Report it as an outcome, in the report's own words. Never paste the ticket text
+into the file: the ticket is written for whoever implements it, the report for
+whoever reads the week, and the two need different sentences. Two or three
+sentences per ticket, the same length as any other item.
+
+If the description grew inside the window but names no result — a path added,
+a scope note, a link — that is still a fact of the week and gets one sentence
+saying what was established, not a claim that something was delivered.
+
+**A week with no movement is one line, not a paragraph** — and one line means
+the ticket is still in the report. It goes to `🔭 Next week` as the committed
+next step, and is left out of `✅ What went well` for that week only. Repeating
+last week's paragraph is exactly the effect this section exists to prevent;
+dropping the ticket altogether is the other one.
 
 **Two such weeks in a row are a finding, not a line.** Something is holding the
 work: a decision, an access, another team, a window that never opened. Name it
