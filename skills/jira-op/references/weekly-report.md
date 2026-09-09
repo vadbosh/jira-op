@@ -86,12 +86,9 @@ Two constraints on these queries:
 Default page size for these listings is `--paginate 15`; the CLI default of 8
 silently truncates a normal week.
 
-Read the previous report as well, when there is one — it is what a ticket
-running across several weeks is measured against, per section 3c:
-
-```bash
-ls -1 weekly-update-*.txt | tail -1
-```
+For a ticket that runs across several weeks, the week's delta comes from its
+changelog — see section 3c. Do not build the report on the previous report
+file: it is an ordinary file in a working directory and may not be there.
 
 For anything that needs the reasoning, not the title, read the ticket:
 
@@ -303,16 +300,63 @@ next report that mentions it has to explain a gap that never existed. It is in
 and in `⚠️ Risks` or `🚩 Decisions Needed` when something holds it. Never in
 none of them.
 
-**Recognise the shape from the ticket, not from a list of keys.** Two markers,
-either one is enough:
+**Recognise the shape from the ticket, not from a list of keys.** Any one of
+these is enough, and all three come from Jira:
 
-- its End Date, target date or sprint end falls beyond the end of the window
-  being reported;
-- the same key appears in the previous report file in the project directory.
+- its End Date or target date falls beyond the end of the window being reported;
+- it entered a working status before the window started — the changelog dates
+  that;
+- it has carried across more than one sprint, which the changelog also dates.
 
-Read that previous file before writing — it is the only reliable record of what
-has already been said about the ticket, and it is what keeps this week's
-sentence from repeating last week's.
+**The baseline is the changelog, not the last report.** Everything that carries
+a timestamp inside the window is this week; everything older was reported
+before, by construction. Nothing needs to be remembered and nothing needs to be
+compared against a file:
+
+```bash
+curl -s -u "$EMAIL:$JIRA_API_TOKEN" \
+  "$SITE/rest/api/3/issue/<KEY>/changelog?maxResults=100" > /tmp/cl.json
+
+jq -r --arg a "$WEEK_START" --arg b "$NEXT_MON" '
+  .values[]
+  | select(.created[0:10] >= $a and .created[0:10] < $b)
+  | .created[0:10] as $d
+  | .items[]
+  | "\($d)  \(.field)  \((.fromString//"")|length) -> \((.toString//"")|length)"
+' /tmp/cl.json
+```
+
+A description edit stores **both** texts in full, so the week's additions are a
+plain diff — take the `fromString` of the first change in the window and the
+`toString` of the last:
+
+```bash
+jq -r --arg a "$WEEK_START" --arg b "$NEXT_MON" '
+  [ .values[] | select(.created[0:10] >= $a and .created[0:10] < $b)
+    | .items[] | select(.field == "description") ] as $d
+  | if ($d|length) == 0 then "" else ($d[0].fromString // "") end' /tmp/cl.json > /tmp/before.txt
+
+jq -r --arg a "$WEEK_START" --arg b "$NEXT_MON" '
+  [ .values[] | select(.created[0:10] >= $a and .created[0:10] < $b)
+    | .items[] | select(.field == "description") ] | last | .toString // ""
+' /tmp/cl.json > /tmp/after.txt
+
+diff /tmp/before.txt /tmp/after.txt | grep '^>'
+```
+
+Measured: a ticket whose description went from 5 lines to 66 inside one window
+returned exactly the 61 added lines. The same changelog carries every custom
+field, so a risk or acceptance field filled during the week shows up too.
+
+A previous report file, if one is still on disk, is a convenience for wording —
+never the source. Files get deleted and directories move; the changelog is the
+record.
+
+**One consequence worth stating:** the window is the *record* date, not the day
+the work happened. Work done in week 1 and written into the ticket in week 3
+belongs to week 3's report. That is the honest reading — it is when the fact
+entered the record — and it is another reason to write the ticket as the work
+runs.
 
 **The paragraph reports the week's delta, not the ticket.** What the ticket is
 about is stated once, in the first report it appears in. After that the
