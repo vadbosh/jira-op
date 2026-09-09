@@ -18,10 +18,35 @@ NEXT_MON=$(date -d "$WEEK_START +7 days" +%F)
 echo "$WEEK_START .. $WEEK_END"
 ```
 
+The window is the **whole** week: Monday 00:00 to Sunday 23:59. It is never
+shortened to the day the report is written. Weekend work happens — a
+maintenance window, a release, a fix on Saturday — and it belongs to the week
+it was done in, not to the next one.
+
+Date-only bounds already express this: `>= WEEK_START` starts at Monday 00:00
+and `< NEXT_MON` ends at Sunday 23:59:59, in JQL and in the changelog
+comparisons alike. Never write `<= WEEK_END` — that stops at Sunday 00:00 and
+silently drops the whole of Sunday. `DURING ("$WEEK_START", "$NEXT_MON")` is
+inclusive at both ends, so an event at exactly next Monday 00:00 is counted
+twice across two reports; that is the cheaper error of the two.
+
+`WEEK_END` is for the file name and for comparing date-only text such as
+`Update <date>:` lines, where a Sunday date matches `<= WEEK_END`. It is not a
+timestamp bound.
+
 The report is delivered **Friday evening or Saturday morning**, so the normal
 run lands inside the week it reports and `last monday` returns that week's
 Monday. Run on a Monday, it returns the *previous* Monday — also correct,
 because a Monday report closes the week that just ended.
+
+**Delivering before the window closes leaves a tail.** Anything recorded after
+the file was written cannot be in it. Two ways out, in order:
+
+- the report has not been sent yet — regenerate it; the window is unchanged, so
+  the weekend material simply lands where it belongs;
+- it has been sent — the next report carries those items and names their dates
+  in the sentence, so they read as the previous week's work rather than as this
+  week's. Do not silently redate them, and do not drop them.
 
 Never write the date from memory of the conversation. A resumed session can be
 days later than it feels.
@@ -367,11 +392,16 @@ A previous report file, if one is still on disk, is a convenience for wording �
 never the source. Files get deleted and directories move; the changelog is the
 record.
 
-**One consequence worth stating:** the window is the *record* date, not the day
-the work happened. Work done in week 1 and written into the ticket in week 3
-belongs to week 3's report. That is the honest reading — it is when the fact
-entered the record — and it is another reason to write the ticket as the work
-runs.
+**One consequence worth stating:** the changelog dates the *record*, not the
+work. Inside one week that costs nothing — the window runs to Sunday 23:59, so
+a Saturday fix written up on Sunday is still this week's. Across weeks it does:
+work done weeks ago and written into the ticket now arrives in this week's
+delta.
+
+When the added text itself carries a date that falls in an earlier week, report
+it with that date and say when it was done. Do not present it as this week's
+output, and do not throw it away either — it is a fact of the record either
+way. The cure is to write the ticket as the work runs.
 
 **The paragraph reports the week's delta, not the ticket.** What the ticket is
 about is stated once, in the first report it appears in. After that the
