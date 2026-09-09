@@ -38,11 +38,14 @@ curl -s -u "$E:$JIRA_API_TOKEN" \
   | jq -r '.fields[] | select(.required) | "\(.fieldId)\t\(.name)"'
 ```
 
-### Generate the flags instead of typing them
+### The ids are what the create uses
 
-`--custom` takes the field **name**, lowercased with spaces replaced by
-hyphens. Deriving that by hand is where the typos live, so let the API write
-the flags:
+The create goes through REST (see Procedure), so the `customfield_*` ids above
+are what the request carries — nothing has to be derived.
+
+`--custom` on the CLI is the other convention: it takes the field **name**,
+lowercased with spaces replaced by hyphens. Only needed on the CLI fallback,
+and this prints both, so neither is typed by hand:
 
 ```bash
 curl -s -u "$E:$JIRA_API_TOKEN" \
@@ -96,6 +99,12 @@ drop the flag rather than hunting for an id.
 
 ## Procedure
 
+The create goes through **REST**, not through `jira issue create`. That is not
+a preference: the CLI hangs when stdin is not a terminal, which is every
+command an assistant, a CI job or an editor plugin runs — see "Why not the
+CLI" below. The CLI stays for reads and for transitions, where it is the
+shorter tool.
+
 **0. Ask three questions before drafting.** All three in one go, and none of
 them guessed:
 
@@ -113,154 +122,175 @@ Do not ask about the epic; see "Fields that are not on the create screen"
 below. Everything written into the ticket is English — translate the user's
 Russian input and show the English draft for approval.
 
-**1. Draft, and show the draft.** Nothing is created before the user approves
-this specific ticket. **A create cannot be undone here** — the account has
-`DELETE_ISSUES: false` on this project (see `SITE.md`), so a mistaken ticket stays
-on the board until an administrator removes it. Never create a ticket to test
-the recipe. Write the description to a file — the CLI mangles
-multi-line strings on the command line:
+**1. Write the description as a file, in Jira wiki markup.**
+
+The description reaches Jira through the v2 API, which converts plain text
+server-side — by **wiki** rules, not Markdown. `## Scope` becomes a numbered
+list; `**bold**` stays literal asterisks. Measured on a real create: a Markdown
+body produced `orderedList, paragraph, orderedList, bulletList…` where headings
+were meant.
 
 ```bash
-cat > /tmp/op_body.md <<'EOF'
-## What was done
-...
+cat > /tmp/op_body.txt <<'EOF'
+h3. Context
 
-## Why
-...
+Why this exists now, and what happens today.
 
-## Evidence
-- commit / MR / command output
+h3. Scope
+
+* What must be true when this is done.
+* One bullet per outcome, not per keystroke.
+
+h3. Out of scope
+
+* The neighbouring work this ticket deliberately does not cover.
+
+h3. Acceptance criteria
+
+* {{terraform plan}} reports no pending changes.
+* {{kubectl get nodes}} shows every node Ready.
+
+h3. Notes
+
+Anything the implementer needs and nobody would guess.
 EOF
 ```
 
-**2. Find the sprint id.** A board accumulates sprints left in state `active`
+Wiki markup in one line: `h3.` heading, `*` bullet, `#` numbered, `{{code}}`
+inline, `{code}…{code}` block, `[text|url]` link, `*bold*`, `_italic_`.
+
+**2. Show the draft and wait.** Nothing is created before the user approves
+this specific ticket. **A create cannot be undone here** — the account has
+`DELETE_ISSUES: false` on this project (see `SITE.md`), so a mistaken ticket
+stays on the board until an administrator removes it. Never create a ticket to
+test the recipe.
+
+**3. Find the sprint id.** A board accumulates sprints left in state `active`
 by other teams, sometimes years after they ended, so `--state active` alone
 picks the wrong one. Take the sprint whose name starts with `<SPRINT_PREFIX>`
 **and** whose date window contains today:
 
 ```bash
 set -a; . ~/.config/.jira/token.env; set +a
-TODAY=$(date -I)
-curl -s -u "$(jira me):$JIRA_API_TOKEN" \
-  'https://example.atlassian.net/rest/agile/1.0/board/<BOARD_ID>/sprint?state=active' \
+TODAY=$(date -I); E=$(jira me); SITE=<SITE>
+curl -s -u "$E:$JIRA_API_TOKEN" \
+  "$SITE/rest/agile/1.0/board/<BOARD_ID>/sprint?state=active" \
 | jq -r --arg d "$TODAY" '.values[]
     | select(.name | startswith("<SPRINT_PREFIX>"))
     | select(.startDate[:10] <= $d and .endDate[:10] >= $d)
     | "\(.id)\t\(.name)\t\(.startDate[:10])..\(.endDate[:10])"'
 ```
 
-Empty result means the sprint rolled over and none is open — ask the user
-rather than dropping the ticket into a stale sprint.
+Empty result means no sprint is currently open — it happens on the day one
+window closes and the next has not been started. Ask; do not drop the ticket
+into a stale sprint, and do not silently create it outside every sprint.
 
-**2a. `jira issue create` hangs when it is not run from a terminal.**
-
-An assistant runs commands in a subprocess, so this is the normal case, not an
-edge case. Measured on jira-cli 1.7.0:
-
-```
-$ timeout 15 jira issue create -pPROJ -t"..." -s"probe" -b"x" --no-input
-rc=124            # nothing printed, nothing created — it hung
-
-$ timeout 15 jira issue create -pPROJ -t"..." -s"probe" -b"x" --no-input </dev/null
-jira: Received unexpected response '400 Bad Request'.
-rc=1              # reached the API, which is the point
-```
-
-Upstream bug, open at the time of writing:
-[ankitpokhrel/jira-cli#948](https://github.com/ankitpokhrel/jira-cli/issues/948).
-`StdinHasData()` returns true for any non-terminal descriptor — including the
-socket a subprocess gets — and the CLI then blocks in `io.ReadAll(os.Stdin)`
-forever. `--no-input` does not help: the flag skips the TUI, not this path.
-
-**Always redirect stdin: `</dev/null`.** It applies to `issue create`,
-`issue edit` and `comment add` — anything that might ask a question.
-
-If it hangs anyway, do not retry blindly: read first, the ticket may exist.
-The REST path below has no such problem and is the more predictable choice for
-a scripted create.
-
-**2b. Creating through REST instead**
+**4. Create.** One request, every required field in it:
 
 ```bash
-jq -n --arg summary "<summary>" --arg desc "$(cat /tmp/op_body.txt)" \
-      --arg risks "<risks>" --arg acc "<acceptance>" \
-  '{fields:{project:{key:"<PROJECT>"},issuetype:{id:"<TYPE_ID>"},
-    summary:$summary, description:$desc,
-    assignee:{id:"<ACCOUNT_ID>"}, <CF_STORY_POINTS>:<N>,
-    <CF_RISKS>:$risks, <CF_ACCEPTANCE>:$acc}}' > /tmp/op_create.json
+jq -n \
+  --arg summary "<summary>" \
+  --arg desc    "$(cat /tmp/op_body.txt)" \
+  --arg risks   "<risks>" \
+  --arg acc     "<how it is verified>" \
+  '{fields:{
+     project:   {key: "<PROJECT>"},
+     issuetype: {id:  "<TYPE_ID>"},
+     summary:   $summary,
+     description: $desc,
+     assignee:  {id: "<ACCOUNT_ID>"},
+     <CF_STORY_POINTS>: <N>,
+     <CF_RISKS>:      $risks,
+     <CF_ACCEPTANCE>: $acc
+  }}' > /tmp/op_create.json
 
 curl -s -X POST -u "$E:$JIRA_API_TOKEN" -H 'Content-Type: application/json' \
   --data-binary @/tmp/op_create.json "$SITE/rest/api/2/issue" \
   | jq -c '{key, errors, errorMessages}'
 ```
 
-**v2, and the description is Jira wiki markup — not Markdown.** v2 converts
-plain text server-side, which is what makes the ADF text fields easy, but it
-reads the text by wiki rules: `## Scope` becomes a *numbered list*, not a
-heading. Use `h3. Scope`, `*` for bullets, `{{code}}` for inline code. Measured:
-a Markdown body produced `orderedList, paragraph, orderedList, bulletList…`
-where headings were meant.
+`/rest/api/2/`, deliberately: v2 accepts plain strings for the ADF text fields
+and converts them. v3 rejects a string where it wants a document.
 
-Check what actually landed before declaring it done:
+A `400` comes back with `errors` naming the field — read it rather than
+guessing. A timeout is the one case that needs care: **read before retrying**,
+the ticket may already exist.
 
 ```bash
+jira issue list -q'project = <PROJECT> AND reporter = currentUser() AND created >= "'"$(date -I)"'"' \
+  --plain --no-headers --columns key,summary --paginate 5
+```
+
+**5. Put it in the sprint:**
+
+```bash
+jira sprint add <SPRINT_ID> <KEY>
+```
+
+**6. Set the End Date** if one was given — it is not on the create screen:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' -X PUT -u "$E:$JIRA_API_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"fields":{"<CF_END_DATE>":"YYYY-MM-DD"}}' "$SITE/rest/api/2/issue/<KEY>"
+```
+
+`204` means applied.
+
+**7. Move it to the right status.** A ticket recording finished work goes to
+`<STATUS_IN_PROGRESS>` or straight to `<STATUS_DONE>`; a ticket describing work
+about to start stays where the create left it. Ask if it is not obvious from
+what the user said — the status is what a team lead reads first.
+
+```bash
+jira issue move <KEY> "<STATUS_IN_PROGRESS>"
+```
+
+Transition names are per-workflow and listed in `SITE.md`. `Done` frequently
+does not exist; `Completed`, `Closed` and localised names are all common.
+
+**8. Read back and report.** An exit code is not evidence:
+
+```bash
+curl -s -u "$E:$JIRA_API_TOKEN" \
+  "$SITE/rest/api/3/issue/<KEY>?expand=renderedFields&fields=summary,status,assignee,<CF_STORY_POINTS>,<CF_SPRINT>,<CF_END_DATE>,<CF_RISKS>,<CF_ACCEPTANCE>" \
+  | jq -r '.fields | "status: \(.status.name)  points: \(.<CF_STORY_POINTS>)  end: \(.<CF_END_DATE> // "-")"'
+
+# headings survived the conversion?
 curl -s -u "$E:$JIRA_API_TOKEN" "$SITE/rest/api/3/issue/<KEY>?fields=description" \
   | jq -r '[.fields.description.content[] | if .type=="heading" then "H(\(.content[0].text))" else .type end] | join(", ")'
 ```
 
-**3. Create:**
+Report the stored status, assignee, sprint, points and End Date, plus one line
+saying the ticket is not linked to an epic.
 
-```bash
-jira issue create --no-input \
-  -p<PROJECT> -t"<ISSUE_TYPE>" \
-  -s"<summary>" \
-  -a"$(jira me)" \
-  -b"$(cat /tmp/op_body.md)" \
-  --custom story-points=<N> \
-  <the --custom lines the generator printed, filled in>
+## Why not the CLI
+
+`jira issue create` hangs forever when stdin is not a terminal — a subprocess,
+a CI runner, an editor integration. `StdinHasData()` returns true for any
+non-terminal descriptor, including the socket a subprocess gets, and the CLI
+then blocks in `io.ReadAll(os.Stdin)`. `--no-input` skips the TUI, not this
+path. Upstream:
+[ankitpokhrel/jira-cli#948](https://github.com/ankitpokhrel/jira-cli/issues/948),
+open, reproduced on 1.7.0:
+
+```
+$ timeout 15 jira issue create -pPROJ -t"..." -s"probe" -b"x" --no-input
+rc=124                          # hung, nothing created
+
+$ timeout 15 jira issue create ... --no-input </dev/null
+jira: Received unexpected response '400 Bad Request'.
+rc=1                            # reached the API
 ```
 
-Nothing in that command is fixed except the first four lines. The `--custom`
-flags are whatever `createmeta` said is required for **this** issue type, and
-they change with the type.
+So the CLI *can* create with `</dev/null` appended. It is still the second
+choice: the redirect is easy to forget, the failure mode is a silent hang
+rather than an error, and `--custom` takes field names that have to be derived
+while REST takes the ids `createmeta` already printed.
 
-Keep the returned key. If the command times out, **read before retrying** —
-the ticket may already exist.
-
-**4. Put it in the active sprint:**
-
-```bash
-jira sprint add <SPRINT_ID> PROJ-123
-```
-
-**5. Move to In Progress:**
-
-```bash
-jira issue view PROJ-123 --plain      # current status
-jira issue move PROJ-123 "In Progress"
-```
-
-Transition names are per-workflow; the ones for this project are recorded in
-`SITE.md`. Finished work is `<STATUS_DONE>`, which is frequently *not* `Done` —
-`Completed`, `Closed`, `Resolved` and localised names are all common, and a
-wrong name fails the move. Re-read the list for the specific issue whenever a
-move is refused:
-
-```bash
-curl -s -u "$(jira me):$JIRA_API_TOKEN" \
-  "https://example.atlassian.net/rest/api/3/issue/PROJ-123/transitions" \
-  | jq -r '.transitions[] | "\(.id)\t\(.name)"'
-```
-
-**6. Read back and report:**
-
-```bash
-jira issue view PROJ-123 --plain
-```
-
-Report the stored status, assignee, sprint and story points, plus one line
-saying the ticket is not linked to an epic. An exit code of 0 is not evidence
-that the fields landed.
+**The same redirect applies to every CLI command that might ask a question** —
+`issue edit`, `comment add`, `issue move` with no state given. Append
+`</dev/null` there too.
 
 ## Fields that are not on the create screen
 
