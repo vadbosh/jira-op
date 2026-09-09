@@ -265,6 +265,28 @@ Section by section:
   states **Impact:** and **Mitigation:**. A risk belongs here only when it
   comes out of the work done this week: something that failed, blocked,
   regressed, or was left unresolved in a task that was actually worked on.
+
+  **Keep it short the same way, but content wins over length here.** The risk
+  in one clause, `Impact:` in one sentence, `Mitigation:` in one sentence —
+  drop the explanation of the mechanism, which belongs in the ticket.
+
+  What may never be dropped to save a line: a second distinct impact, the
+  condition under which the risk fires, and anything the reader would need in
+  order to decide. If the item needs four sentences to stay complete, it gets
+  four. A shortened risk that no longer says what happens or what is being done
+  about it has become decoration.
+
+  ```
+  too long   🟡 PROJ-123 — the cutover is a weighted DNS shift, so neither
+             direction is instant, because resolvers and clients keep the
+             previous address until the record TTL expires and a rollback is
+             therefore as slow as the cutover was. Impact: ...
+  right      🟡 PROJ-123 — the cutover is a weighted DNS shift, not a switch.
+             Impact: a rollback takes as long as the record TTL, and a host
+             switched before its route exists answers 404. Mitigation: both
+             paths compared at weight 0 first, rollback rehearsed on the
+             sandbox cluster.
+  ```
 - **📌 Key decisions made this week** — what was decided, **Why:** the reason,
   **Decision maker:** the names. Include product decisions and scope decisions,
   not implementation details. Built from three sources, in order: ticket
