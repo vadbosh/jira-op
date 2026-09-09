@@ -96,11 +96,22 @@ drop the flag rather than hunting for an id.
 
 ## Procedure
 
-**0. Ask for the values that have no safe default:** the story points, which
-sprint, and — optionally — an End Date. Nothing here may be guessed. Do not ask
-about the epic; see "Fields that are not on the create screen" below.
-Everything written into the ticket is English — translate the user's Russian
-input and show the English draft for approval.
+**0. Ask three questions before drafting.** All three in one go, and none of
+them guessed:
+
+| Ask | Why it cannot be defaulted |
+|---|---|
+| **Story points** | the estimate is the author's, not the tool's |
+| **Which sprint** | boards keep stale sprints `active` and the current one may not be open yet |
+| **End Date** | a date nobody set is better than a date invented; `none` is a valid answer |
+
+`End Date` is asked every time, not offered as an afterthought — it is the
+field a team lead reads first when scanning a board, and it cannot be set on
+the create screen, so forgetting it means a second write later.
+
+Do not ask about the epic; see "Fields that are not on the create screen"
+below. Everything written into the ticket is English — translate the user's
+Russian input and show the English draft for approval.
 
 **1. Draft, and show the draft.** Nothing is created before the user approves
 this specific ticket. **A create cannot be undone here** — the account has
@@ -140,6 +151,62 @@ curl -s -u "$(jira me):$JIRA_API_TOKEN" \
 
 Empty result means the sprint rolled over and none is open — ask the user
 rather than dropping the ticket into a stale sprint.
+
+**2a. `jira issue create` hangs when it is not run from a terminal.**
+
+An assistant runs commands in a subprocess, so this is the normal case, not an
+edge case. Measured on jira-cli 1.7.0:
+
+```
+$ timeout 15 jira issue create -pPROJ -t"..." -s"probe" -b"x" --no-input
+rc=124            # nothing printed, nothing created — it hung
+
+$ timeout 15 jira issue create -pPROJ -t"..." -s"probe" -b"x" --no-input </dev/null
+jira: Received unexpected response '400 Bad Request'.
+rc=1              # reached the API, which is the point
+```
+
+Upstream bug, open at the time of writing:
+[ankitpokhrel/jira-cli#948](https://github.com/ankitpokhrel/jira-cli/issues/948).
+`StdinHasData()` returns true for any non-terminal descriptor — including the
+socket a subprocess gets — and the CLI then blocks in `io.ReadAll(os.Stdin)`
+forever. `--no-input` does not help: the flag skips the TUI, not this path.
+
+**Always redirect stdin: `</dev/null`.** It applies to `issue create`,
+`issue edit` and `comment add` — anything that might ask a question.
+
+If it hangs anyway, do not retry blindly: read first, the ticket may exist.
+The REST path below has no such problem and is the more predictable choice for
+a scripted create.
+
+**2b. Creating through REST instead**
+
+```bash
+jq -n --arg summary "<summary>" --arg desc "$(cat /tmp/op_body.txt)" \
+      --arg risks "<risks>" --arg acc "<acceptance>" \
+  '{fields:{project:{key:"<PROJECT>"},issuetype:{id:"<TYPE_ID>"},
+    summary:$summary, description:$desc,
+    assignee:{id:"<ACCOUNT_ID>"}, <CF_STORY_POINTS>:<N>,
+    <CF_RISKS>:$risks, <CF_ACCEPTANCE>:$acc}}' > /tmp/op_create.json
+
+curl -s -X POST -u "$E:$JIRA_API_TOKEN" -H 'Content-Type: application/json' \
+  --data-binary @/tmp/op_create.json "$SITE/rest/api/2/issue" \
+  | jq -c '{key, errors, errorMessages}'
+```
+
+**v2, and the description is Jira wiki markup — not Markdown.** v2 converts
+plain text server-side, which is what makes the ADF text fields easy, but it
+reads the text by wiki rules: `## Scope` becomes a *numbered list*, not a
+heading. Use `h3. Scope`, `*` for bullets, `{{code}}` for inline code. Measured:
+a Markdown body produced `orderedList, paragraph, orderedList, bulletList…`
+where headings were meant.
+
+Check what actually landed before declaring it done:
+
+```bash
+curl -s -u "$E:$JIRA_API_TOKEN" "$SITE/rest/api/3/issue/<KEY>?fields=description" \
+  | jq -r '[.fields.description.content[] | if .type=="heading" then "H(\(.content[0].text))" else .type end] | join(", ")'
+```
 
 **3. Create:**
 

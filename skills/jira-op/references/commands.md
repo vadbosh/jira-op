@@ -108,8 +108,9 @@ jira issue create -tSub-task -P"PROJ-123" -s"Subtask summary"
 # Create with custom fields
 jira issue create -tStory -s"Summary" --custom story-points=3
 
-# Skip prompts for optional fields
-jira issue create -tTask -s"Quick task" --no-input
+# Skip prompts for optional fields — and redirect stdin, or it hangs
+# in any non-terminal context (jira-cli#948). --no-input alone is not enough.
+jira issue create -tTask -s"Quick task" --no-input </dev/null
 
 # Open in browser after creation
 jira issue create -tBug -s"Bug title" --web

@@ -160,6 +160,12 @@ ticket looks like a ticket nobody discussed. Pass `--comments 10`.
 `jira issue comment add` takes the body positionally or via `-T/--template`.
 There is no `-b` on that subcommand — that flag belongs to `create` and `edit`.
 
+**Anything that could ask a question hangs when stdin is not a terminal** —
+which is every command an assistant runs. `--no-input` does not cover it
+([jira-cli#948](https://github.com/ankitpokhrel/jira-cli/issues/948)). Append
+`</dev/null` to `issue create`, `issue edit` and `comment add`, or use the REST
+path in `references/create-task.md`.
+
 ## Two workflows this project actually uses
 
 | Task | Reference |
