@@ -1,5 +1,5 @@
 Engineering Weekly Update — Infrastructure / Platform — August 23, 2026
-Reporting week: Monday, August 17 – Sunday, August 23, 2026
+Reporting week: Monday, August 17, 00:00 – Sunday, August 23, 23:59
 Boards: PROJ (Sprint 6)
 
 🚩 Decisions Needed
@@ -46,6 +46,12 @@ what it does and does not contain:
   DURING is the list, and a status change is not required.
 - An item that is in flight says so plainly and stops. It is not padded to
   match the length of the finished one.
+- Two sentences per item, and no lists of components, versions or paths — the
+  count and the shape, with the detail left in the ticket.
+- PROJ-707 and PROJ-243 run for months. Each week they carry that week's
+  delta, read from the ticket's changelog, so the paragraph never repeats
+  itself; a week with no movement would appear as one line under Next week
+  instead, and never as nothing at all.
 - Nothing about ticket age, sprint carry-overs, empty fields or missing
   comments. That is the tracker's bookkeeping, not the week's work.
 - No Markdown. The section markers are emoji because the destination renders

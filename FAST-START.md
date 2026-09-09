@@ -41,8 +41,9 @@ most accounts, so there are no test tickets.
 
 ## Weekly report
 
-Calendar week, Monday–Sunday; run it Friday evening or Saturday morning. You
-are asked whether the window contained vacation.
+Calendar week, Monday 00:00 to Sunday 23:59; run it Friday evening or Saturday
+morning. You are asked whether the window contained vacation. Weekend work
+still belongs to that week — regenerate the file if you have not sent it yet.
 
 It writes a plain-text file into the project directory and answers with the
 path alone — the content is not printed into the chat, and an existing file is
@@ -54,7 +55,9 @@ weekly-update-2026-08-31_2026-09-06.txt
 
 Shape: [docs/example-weekly-update.txt](docs/example-weekly-update.txt). It
 reports facts of the work — not ticket age, sprint carry-overs or empty fields
-— and unstarted work never appears.
+— and unstarted work never appears. Two sentences per item, no component or
+version lists. A ticket that runs for months appears every week as that week's
+delta, read from its changelog.
 
 ## Several Jira sites
 

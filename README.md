@@ -133,8 +133,13 @@ assistant was started in** — `weekly-update-<start>_<end>.txt`. The reply is
 the path; the content is not printed into the chat, and an existing file is
 never overwritten. Nothing is published to Jira or sent anywhere.
 
+The window is the whole week — Monday 00:00 to Sunday 23:59 — and is never
+shortened to the day the report is written, because weekend work is work. Run
+it on Friday and something lands on Saturday: regenerate if you have not sent
+it, otherwise the next report carries those items with their dates named.
+
 The report has a fixed shape: decisions needed, escalations, what went well,
-risks, decisions made, next week. Two rules make it readable:
+risks, decisions made, next week. Four rules make it readable:
 
 - **facts of the work only.** Never how long a ticket has been open, how many
   sprints it carried through, or that its fields are empty. That is board
@@ -143,6 +148,17 @@ risks, decisions made, next week. Two rules make it readable:
   *category*, which on some boards is nine status names. Everything Jira
   categorises as working counts as work, so a week spent in `Team Review` or
   `Blocked` is reported, not dropped.
+- **Two sentences per item.** No lists of components, versions or paths — the
+  count and the shape ("about two dozen charts", "three clusters"), with the
+  detail left in the ticket. Risks are compressed the same way, except that a
+  second distinct impact or the condition under which a risk fires is never
+  dropped to save a line.
+- **A month-long ticket is not split up to make the report easier**, and it
+  never silently disappears from a report either. Each week it carries the
+  delta — what changed inside the window, with a count when the work has
+  countable parts — and a week with no movement becomes one line under Next
+  week. The delta is read from the ticket's changelog, which stores both
+  versions of every text edit, so no previous report file is needed.
 
 ## Safety
 
