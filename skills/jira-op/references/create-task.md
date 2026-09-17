@@ -255,6 +255,26 @@ Acceptance Test:
 <the full text>
 ```
 
+**Print the content checklist under the draft**, one line per item, so what was
+left out is visible while it can still be put back:
+
+```
+Cause / mechanism:      present | absent — <one phrase why>
+Deciding constraint:    present | absent — <one phrase why>
+Out of scope + reason:  present | absent — <one phrase why>
+Risk condition + cost:  present | absent — <one phrase why>
+How it is verified:     present | absent — <one phrase why>
+```
+
+`absent` is a legitimate answer — a task with no real risk has no risk
+condition. What is not legitimate is `absent` with nothing after it, or a line
+quietly missing from the list.
+
+The checklist exists because the five items above are a judgement and the length
+rule is a count, and a count wins every time it is not checked against
+something. This is that something: the omission is read by a human at the one
+moment it is still free to fix.
+
 **Every field, including the ones the assistant wrote itself.** Risks and
 acceptance criteria are usually drafted from the work rather than dictated —
 that is fine, and it is exactly why they have to be read before they are

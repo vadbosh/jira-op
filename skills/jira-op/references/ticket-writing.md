@@ -75,6 +75,20 @@ behaviour or operations changed.
 
 ## Before creating
 
+- **Print the content checklist with the draft**, one line per item, before
+  anything is created:
+
+  ```
+  Cause / mechanism:      present | absent — <one phrase why>
+  Deciding constraint:    present | absent — <one phrase why>
+  Out of scope + reason:  present | absent — <one phrase why>
+  Risk condition + cost:  present | absent — <one phrase why>
+  How it is verified:     present | absent — <one phrase why>
+  ```
+
+  These five are what a short ticket loses first, and losing them is invisible
+  in a text that reads well. `absent` is a fine answer with a reason after it;
+  a missing line is not.
 - **Search for it first.** A duplicate costs more than the search:
   `jira issue list -q'project = <KEY> AND text ~ "<subject>"' --plain --paginate 15`
 - Check the project's required fields — they differ per issue type.
