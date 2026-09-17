@@ -144,8 +144,12 @@ shortened to the day the report is written, because weekend work is work. Run
 it on Friday and something lands on Saturday: regenerate if you have not sent
 it, otherwise the next report carries those items with their dates named.
 
-The report has a fixed shape: decisions needed, escalations, what went well,
-risks, decisions made, next week. Four rules make it readable:
+The report has a fixed set of sections: decisions needed, escalations, what went
+well, risks, decisions made, next week. Two presentations of them are accepted —
+a compact one, where items read `KEY — outcome` under a workstream line and the
+whole Next Week section carries a single owner, and a fuller one with the ticket
+title quoted and an owner on each item. Match whatever the team already sends.
+Four rules make either readable:
 
 - **facts of the work only.** Never how long a ticket has been open, how many
   sprints it carried through, or that its fields are empty. That is board
@@ -165,7 +169,7 @@ risks, decisions made, next week. Four rules make it readable:
   countable parts. An empty changelog is not an empty week: on a long ticket the
   work follows the plan written inside it, so the report says the work continued
   along that plan and never writes "no movement this week". A ticket nobody
-  touched becomes one line under Next week. The delta is read from the ticket's
+  touched becomes one line under Next Week. The delta is read from the ticket's
   changelog, which stores both versions of every text edit, so no previous
   report file is needed.
 

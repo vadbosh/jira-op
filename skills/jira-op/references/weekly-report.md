@@ -57,7 +57,7 @@ Before reading anything into an empty week, ask whether the window includes
 vacation, public holidays or sick leave. An absence is not a delivery problem
 and must never be written up as a risk.
 
-An absent week gets one line under **What went well** — `Vacation from
+An absent week gets one line under **What Went Well** — `Vacation from
 <date> to <date>; no engineering activity planned or expected.` — and
 `None this week.` in every other section. Do not fill it with carried-over
 tickets to make it look busy.
@@ -93,7 +93,7 @@ jira sprint list --state active --plain
 
 Constraints on these queries:
 
-- **Unstarted work never appears in the report** — not in What went well, not
+- **Unstarted work never appears in the report** — not in What Went Well, not
   in Risks, not in Decisions Needed. That is the whole `To Do` **category**
   (`statusCategory` `new`), which on some boards is nine status names, not one.
   Filter it out at the query, so it cannot leak in through a carried-over
@@ -212,16 +212,40 @@ from, and the file goes stale the moment the draft is corrected.
 ## 3a. Structure
 
 ```
-Engineering Weekly Update — <area / component> — <Month D, YYYY>
-Boards: <PROJECT>
+Engineering Weekly Update — <engineer or area> — <Month D, YYYY>
+Board: <PROJECT>
 
 🚩 Decisions Needed
 🆘 Escalations / Help Needed
-✅ What went well
-⚠️ What didn't go well / Risks
-📌 Key decisions made this week
-🔭 Next week
+✅ What Went Well
+⚠️ What Didn't Go Well / Risks
+📌 Key Decisions Made This Week
+🔭 Next Week
 ```
+
+The header names the engineer whose week it is — the token owner's Jira display
+name, from `jira me` and the profile — or the area, when the report covers a
+team rather than a person. `docs/example-weekly-update.txt` is a filled-in
+example.
+
+**Two shapes are accepted, and the team's existing one wins.** The compact shape
+is the one above: Title Case titles, items as `<KEY> — <outcome>` grouped under
+a workstream line, one `Owner:` for the whole Next Week section, risks with no
+severity marker. The fuller shape writes the titles in sentence case, quotes the
+ticket title after the key, marks a risk 🔴/🟡 and puts an `Owner:` on each Next
+Week item. Read the report the team is already sending and match it; never
+convert an existing report from one shape to the other.
+
+What the shapes do **not** change — these hold in both, and the rest of this
+file is written for both:
+
+* `Impact:` and `Mitigation:` on a risk, `Why:` and `Decision makers:` on a
+  decision.
+* Two sentences per item, three at the outside, and no lists of components,
+  versions or paths.
+* No tracker bookkeeping (3b), plain text with no Markdown (4), and the
+  long-ticket rule (3c).
+* `None this week.` only where it was actually checked.
 
 Section by section:
 
@@ -229,12 +253,13 @@ Section by section:
   else to answer. `None this week.` when there are none. Do not invent items.
 - **🆘 Escalations / Help Needed** — where the team is stuck and needs a
   person, an access, or a priority call. Same rule.
-- **✅ What went well** — **two sentences per item, three at the outside.**
-  The key and the title in quotes, a short label of the nature of the work
+- **✅ What Went Well** — **two sentences per item, three at the outside.**
+  The key, then what was done and what came out of it. In the compact shape that
+  is `<KEY> — <outcome>` under a workstream line; in the fuller shape the ticket
+  title follows the key in quotes with a short label of the nature of the work
   (`Query optimization`, `Production issue investigation`, `Cross-team
-  coordination`), what was done and what came out of it. Work with no ticket —
-  coordination, sprint scoping, reviews — gets the same two sentences with a
-  label instead of a key. Past tense, no first person.
+  coordination`). Work with no ticket — coordination, sprint scoping, reviews —
+  is a plain line in the same group. Past tense, no first person.
 
   **This section is a summary, not a retelling of the ticket.** The reader
   scans six or eight items in a minute and opens the ticket when they want
@@ -291,10 +316,11 @@ Section by section:
 
   Ask the user which long tickets were worked on when the changelog is silent —
   that is the one fact the tracker cannot answer. A ticket they did not touch
-  goes to `🔭 Next week`; one they did goes here.
-- **⚠️ What didn't go well / Risks** — one line per risk, prefixed with a
-  severity marker (🔴 / 🟡), naming the ticket where there is one. Each item
-  states **Impact:** and **Mitigation:**. A risk belongs here only when it
+  goes to `🔭 Next Week`; one they did goes here.
+- **⚠️ What Didn't Go Well / Risks** — one item per risk, naming the ticket
+  where there is one, with a severity marker (🔴 / 🟡) in the fuller shape and
+  none in the compact one. Each item states **Impact:** and **Mitigation:**
+  in both. A risk belongs here only when it
   comes out of the work done this week: something that failed, blocked,
   regressed, or was left unresolved in a task that was actually worked on.
 
@@ -319,7 +345,7 @@ Section by section:
              paths compared at weight 0 first, rollback rehearsed on the
              sandbox cluster.
   ```
-- **📌 Key decisions made this week** — what was decided, **Why:** the reason,
+- **📌 Key Decisions Made This Week** — what was decided, **Why:** the reason,
   **Decision maker:** the names. Include product decisions and scope decisions,
   not implementation details. Built from three sources, in order: ticket
   comments, `Update <date>:` lines in descriptions that fall inside the
@@ -335,7 +361,7 @@ Section by section:
   ```
 
   Name the tickets that were actually worked on in the window — the same ones
-  that appear under What went well. Two or three keys, no more; beyond that
+  that appear under What Went Well. Two or three keys, no more; beyond that
   write "the agreed sprint scope" without the list.
 
   Use the short form alone —
@@ -352,8 +378,10 @@ Section by section:
   those read as a complaint about bookkeeping and put the reader on the
   defensive about a process they own. A week with no decisions is an ordinary
   week.
-- **🔭 Next week** — planned work as an action with an **Owner:** on each item.
-  Not a wish list: only work that is actually committed.
+- **🔭 Next Week** — planned work as an action, with an **Owner:**. One owner
+  line for the whole section in the compact shape, one per item in the fuller
+  one, and always per item when the section mixes owners. Not a wish list: only
+  work that is actually committed.
 
 ## 3b. Facts of the week only — never board hygiene
 
@@ -404,7 +432,7 @@ owners, sprints or estimates.
 **It appears in every report that its window touches — without exception.**
 A long ticket that quietly drops out of a report reads as abandoned, and the
 next report that mentions it has to explain a gap that never existed. It is in
-`✅ What went well` when something moved, in `🔭 Next week` when nothing did,
+`✅ What Went Well` when something moved, in `🔭 Next Week` when nothing did,
 and in `⚠️ Risks` or `🚩 Decisions Needed` when something holds it. Never in
 none of them.
 
@@ -536,12 +564,12 @@ work.
 What to write instead depends on one question the tracker cannot answer — was
 the ticket worked on:
 
-- **worked on, nothing recorded** — an item in `✅ What went well` saying the
+- **worked on, nothing recorded** — an item in `✅ What Went Well` saying the
   work continued along the plan recorded in the ticket, and that its steps live
   in that plan rather than in separate Jira items. Two sentences, no invented
   outcome. The wording is in the `✅` section of 3a.
-- **not worked on** — one line in `🔭 Next week` as the committed next step,
-  and left out of `✅ What went well` for that week. Still in the report:
+- **not worked on** — one line in `🔭 Next Week` as the committed next step,
+  and left out of `✅ What Went Well` for that week. Still in the report:
   dropping the ticket reads as abandoned.
 
 Repeating last week's paragraph is the other failure this section exists to

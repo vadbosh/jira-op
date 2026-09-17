@@ -1,61 +1,92 @@
-Engineering Weekly Update — Infrastructure / Platform — August 23, 2026
-Reporting week: Monday, August 17, 00:00 – Sunday, August 23, 23:59
-Boards: PROJ (Sprint 6)
+Engineering Weekly Update — A. Engineer — August 23, 2026
+Board: PROJ
 
 🚩 Decisions Needed
 None this week.
 
 🆘 Escalations / Help Needed
-None this week.
+Awaiting PROJ-901: staging database dump needed before the fixture work can
+start. Relying on: D. Owner.
 
-✅ What went well
-PROJ-717 "Blog infrastructure transfer to the staging host" — Infrastructure
-migration: moved the blog from the production path to the staging host,
-including the database and the uploaded content. Closed on August 18 with
-resolution Done; acceptance was a working staging host.
+✅ What Went Well
+Cluster component maintenance
+PROJ-707 — Scheduled update of node AMI images and cluster plugins across three
+clusters. Work continued along the plan recorded in the ticket itself; the task
+spans weeks, so its steps are tracked in that plan rather than as separate Jira
+items.
+PROJ-243 — Gateway API rollout in the sandbox cluster: gatewayclasses, gateway,
+proxies and routes deployed, following the earlier decision to implement the
+controller via Terraform.
+Met with the platform team to agree which routes move first and what has to be
+in place before the cutover.
 
-PROJ-707 "Terraform tasks: current and permanent" — Cluster component
-maintenance: scheduled update of node AMI images and cluster plugins across
-three clusters. In progress through the week.
+Blog migration
+PROJ-717 — Moved the blog from the production path to the staging host,
+including the database and the uploaded content. Closed on August 18; acceptance
+was a working staging host.
 
-PROJ-243 "Gateway controller implementation" — Gateway API rollout: deployment
-of gatewayclasses, gateway, proxies and routes in the sandbox cluster,
-following the earlier decision to implement the controller via Terraform.
-In progress through the week.
+⚠️ What Didn't Go Well / Risks
+The staging host has no monitoring yet, so a failure there is noticed by a
+person rather than by an alert. Impact: a broken staging blog can sit unnoticed
+for a day and block the content team. Mitigation: the host joins the standard
+monitoring set next week, tracked in PROJ-717.
 
-⚠️ What didn't go well / Risks
-None this week.
+📌 Key Decisions Made This Week
+Implement the gateway controller via Terraform rather than by hand. Why: the
+cluster is already described in Terraform, and a hand-made controller would
+drift from it within a sprint. Decision makers: A. Engineer and D. Owner.
 
-📌 Key decisions made this week
-No new decisions this week; work continued within the scope already agreed for
-PROJ-707 and PROJ-243.
-
-🔭 Next week
+🔭 Next Week
+Owner: A. Engineer.
 Continue the cluster component update in PROJ-707 across the three clusters.
-Owner: A. Engineer.
 Continue the Gateway API rollout in PROJ-243 in the sandbox cluster.
-Owner: A. Engineer.
+Add the staging blog host to the monitoring set.
 
 --- not part of the report ---
 
-This is the shape the skill produces, with the keys and names replaced. Note
-what it does and does not contain:
+This is one accepted shape — the compact one, and the one this team sends. The
+fuller variant is equally correct: section titles in sentence case, the ticket
+title quoted after the key, a severity marker on a risk, an Owner on each Next
+Week item. Match whatever the team is already sending; do not convert a report
+from one shape to the other for its own sake.
 
+What varies between the two shapes is only presentation: capitalisation of the
+section titles, whether the ticket title is quoted, whether items are grouped
+under a workstream line, where Owner sits, and whether risks carry 🔴/🟡.
+
+What never varies, in either shape: Impact: and Mitigation: on a risk, Why: and
+Decision makers: on a decision, two sentences per item, no lists of components
+or versions, no tracker bookkeeping, plain text, and the long-ticket rule below.
+
+Note what the example does and does not contain:
+
+- The header carries the engineer's name, taken from the token owner's Jira
+  profile, and one board line. No reporting-window line: the window is in the
+  file name.
+- Section titles are in Title Case, exactly as written above, and the markers
+  are emoji because the destination renders them.
+- What Went Well groups items under a workstream line when there is more than
+  one strand of work; a single strand needs no grouping. An item is the key, an
+  em dash and the outcome — no quoted ticket title, and no label.
+- Work with no ticket — a meeting, a review, coordination — is a plain line in
+  the same group.
 - Two of the three tickets recorded no transition that week. They are here
   because they were in progress during the window — status WAS "In Progress"
   DURING is the list, and a status change is not required.
-- An item that is in flight says so plainly and stops. It is not padded to
-  match the length of the finished one.
+- PROJ-707 and PROJ-243 run for months. An empty changelog on such a ticket is
+  not an empty week: the work follows the plan written inside the ticket, so the
+  item says so. The phrase "no movement this week" is never written. A ticket
+  nobody touched is one line under Next Week instead.
+- A risk states the risk, then Impact: and Mitigation:, each one sentence. No
+  severity markers.
+- A decision states what was decided, then Why: and Decision makers:.
+- Next Week opens with a single Owner: line for the section, then the committed
+  items — no per-item owner unless the section mixes owners.
 - Two sentences per item, and no lists of components, versions or paths — the
   count and the shape, with the detail left in the ticket.
-- PROJ-707 and PROJ-243 run for months. Each week they carry that week's
-  delta, read from the ticket's changelog, so the paragraph never repeats
-  itself; a week with no movement would appear as one line under Next week
-  instead, and never as nothing at all.
 - Nothing about ticket age, sprint carry-overs, empty fields or missing
   comments. That is the tracker's bookkeeping, not the week's work.
-- No Markdown. The section markers are emoji because the destination renders
-  them; everything else is plain text wrapped near 80 characters.
+- No Markdown. Plain text wrapped near 80 characters.
 - The file lands in the project working directory as
   weekly-update-<start>_<end>.txt, and the assistant answers with the path
   alone.
