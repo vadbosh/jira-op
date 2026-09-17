@@ -258,10 +258,18 @@ Acceptance Test:
 **Print two checklists under the draft.** The first is generated, the second is
 a judgement, and both are read before anything is created.
 
-**Fields — from `createmeta`, not from this file.** One line per required field
-of the type being filed, with the value that will be sent. The list comes from
-the same query as the "Mandatory fields" section above, so a field this file has
-never heard of still appears:
+**Fields — queried every time, printed only when it says something.** The query
+runs on every create; the block goes into the draft only when one of these
+holds:
+
+- a required field has no value yet, or
+- the required set differs from what `SITE.md` records for that issue type.
+
+For the type this project files routinely the set matches and everything is
+filled, so the block would be four identical lines in every draft — noise that
+trains the reader to skip the one draft where it matters. On an unfamiliar type
+or a changed create screen it appears, which is the only moment it carries
+information.
 
 ```bash
 curl -s -u "$E:$JIRA_API_TOKEN" \
@@ -269,16 +277,21 @@ curl -s -u "$E:$JIRA_API_TOKEN" \
 | jq -r '.fields[] | select(.required) | "\(.fieldId)\t\(.name)"'
 ```
 
+Compare the query against the recorded set, and print the block when they
+disagree:
+
 ```
 summary                              filled
 description                          filled
-customfield_12338 Potential Risks    filled
-customfield_12361 Acceptance Test    filled
+customfield_19879 DevOps Category    filled
+customfield_19912 DevOps Priority    filled
 duedate Due date                     MISSING — ask the user
 ```
 
 `MISSING` on any line means the create does not run. A required field with no
-sensible value from the work is a question for the user, never an `N/A`.
+sensible value from the work is a question for the user, never an `N/A`. A set
+that disagrees with `SITE.md` means the create screen changed: re-run
+`scripts/site-probe.sh --write` before filing.
 
 **Content — the five things brevity may never remove**, one line each, so what
 was left out is visible while it can still be put back:
