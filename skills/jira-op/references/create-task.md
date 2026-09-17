@@ -141,6 +141,26 @@ Do not ask about the epic; see "Fields that are not on the create screen"
 below. Everything written into the ticket is English — translate the user's
 Russian input and show the English draft for approval.
 
+**Length: brevity first.** Context, Scope and Potential Risks are read by
+someone deciding whether to care, not by someone implementing from them.
+
+- **Two or three sentences per section is the target**, and for most tickets it
+  is enough: what the situation is, what changes, what could go wrong.
+- **Ten to twelve sentences is the ceiling**, and only for work that genuinely
+  spans several areas. Reaching it is a decision, not a default.
+- **No technical minutiae.** Field ids, flag names, byte-level mechanics,
+  version strings and command output belong in the ticket's comments or in the
+  repository, not in the description a reader scans in thirty seconds. Name the
+  shape and the count — "three repositories", "about two dozen charts" — and
+  stop.
+- The same holds for the textarea custom fields. An acceptance field is the one
+  exception where a command is the content, because that is what proves the
+  work; even there, one command and the shape of a good result beat a
+  transcript.
+
+A long description is not thoroughness. It is the part of the work the author
+could not compress yet, and it costs every future reader the same minute.
+
 **1. Write the description as a file, in Jira wiki markup.**
 
 The description reaches Jira through the v2 API, which converts plain text

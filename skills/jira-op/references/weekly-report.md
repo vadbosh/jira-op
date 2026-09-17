@@ -272,11 +272,26 @@ Section by section:
   outcome the ticket does not show, and do not pad the paragraph to match the
   finished items — two honest sentences are the right length.
 
-  Two cases where an in-flight ticket is *not* written up as work here. The
+  One case where an in-flight ticket is *not* written up as work here: the
   window is an absence — then it is named as carried, in the single line that
-  section 1a describes. Or the ticket has already appeared in earlier reports
-  and nothing moved this week — then section 3c applies and it goes to
-  `🔭 Next week` as one line.
+  section 1a describes.
+
+  **A long-running ticket with no Jira activity in the window still belongs
+  here.** Work on a month-long task runs against the plan written in the ticket
+  itself, and splitting that plan into Jira items for the sake of the report is
+  work nobody asked for — so an empty changelog says nothing about whether the
+  week was spent on it. Write the item and say where the plan lives:
+
+  ```
+  right   OP-782 "Scheduled EKS cluster maintenance": work continued along the
+          plan recorded in the ticket itself. The task spans weeks, so the
+          individual steps are tracked inside its own plan rather than as
+          separate Jira items.
+  ```
+
+  Ask the user which long tickets were worked on when the changelog is silent —
+  that is the one fact the tracker cannot answer. A ticket they did not touch
+  goes to `🔭 Next week`; one they did goes here.
 - **⚠️ What didn't go well / Risks** — one line per risk, prefixed with a
   severity marker (🔴 / 🟡), naming the ticket where there is one. Each item
   states **Impact:** and **Mitigation:**. A risk belongs here only when it
@@ -511,17 +526,32 @@ If the description grew inside the window but names no result — a path added,
 a scope note, a link — that is still a fact of the week and gets one sentence
 saying what was established, not a claim that something was delivered.
 
-**A week with no movement is one line, not a paragraph** — and one line means
-the ticket is still in the report. It goes to `🔭 Next week` as the committed
-next step, and is left out of `✅ What went well` for that week only. Repeating
-last week's paragraph is exactly the effect this section exists to prevent;
-dropping the ticket altogether is the other one.
+**Never write "no movement this week", in any wording.** On a multi-week or
+month-long ticket an empty changelog is the normal case: the work follows the
+plan inside the ticket, and adding a Jira item per step would be bookkeeping
+invented for the report. The phrase states a fact about the tracker (3b bans
+exactly that), and it reads as a stalled task to everyone who did not do the
+work.
 
-**Two such weeks in a row are a finding, not a line.** Something is holding the
-work: a decision, an access, another team, a window that never opened. Name it
-in `🚩 Decisions Needed` or in `⚠️ Risks` with its Impact and what would
-unblock it. A named blocker reads as control of the situation; a third
-identical paragraph reads as drift.
+What to write instead depends on one question the tracker cannot answer — was
+the ticket worked on:
+
+- **worked on, nothing recorded** — an item in `✅ What went well` saying the
+  work continued along the plan recorded in the ticket, and that its steps live
+  in that plan rather than in separate Jira items. Two sentences, no invented
+  outcome. The wording is in the `✅` section of 3a.
+- **not worked on** — one line in `🔭 Next week` as the committed next step,
+  and left out of `✅ What went well` for that week. Still in the report:
+  dropping the ticket reads as abandoned.
+
+Repeating last week's paragraph is the other failure this section exists to
+prevent — the item says what the week added, not what the ticket is about.
+
+**A ticket genuinely held up is a finding, not a line.** Held up means
+something outside the work is blocking it: a decision, an access, another team,
+a window that never opened. Name it in `🚩 Decisions Needed` or in `⚠️ Risks`
+with its Impact and what would unblock it. Do not infer a blocker from a quiet
+changelog — ask.
 
 **Leave the trace during the week, not on Friday.** One comment on the ticket
 at the end of the week — two or three sentences, what changed — makes the next

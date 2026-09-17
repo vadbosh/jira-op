@@ -115,6 +115,12 @@ acceptance criteria included. Nothing is created until you say so. The draft is
 in English regardless of the language you asked in, because the ticket is read
 by people who do not speak it.
 
+The body stays short with it. Context, Scope and Potential Risks are aimed at
+someone deciding whether to care: two or three sentences each is the target, ten
+to twelve the ceiling for work that really does span several areas. Field ids,
+flag names and command transcripts are not description material — they live in
+the comments or in the repository.
+
 The summary stays generic — `Scheduled EKS cluster maintenance`, not
 `… node AMI and add-on updates across three clusters`. Counts, versions and
 component lists belong in the body: a board is read at a glance, and those
@@ -156,9 +162,12 @@ risks, decisions made, next week. Four rules make it readable:
 - **A month-long ticket is not split up to make the report easier**, and it
   never silently disappears from a report either. Each week it carries the
   delta — what changed inside the window, with a count when the work has
-  countable parts — and a week with no movement becomes one line under Next
-  week. The delta is read from the ticket's changelog, which stores both
-  versions of every text edit, so no previous report file is needed.
+  countable parts. An empty changelog is not an empty week: on a long ticket the
+  work follows the plan written inside it, so the report says the work continued
+  along that plan and never writes "no movement this week". A ticket nobody
+  touched becomes one line under Next week. The delta is read from the ticket's
+  changelog, which stores both versions of every text edit, so no previous
+  report file is needed.
 
 ## Safety
 
