@@ -255,8 +255,33 @@ Acceptance Test:
 <the full text>
 ```
 
-**Print the content checklist under the draft**, one line per item, so what was
-left out is visible while it can still be put back:
+**Print two checklists under the draft.** The first is generated, the second is
+a judgement, and both are read before anything is created.
+
+**Fields — from `createmeta`, not from this file.** One line per required field
+of the type being filed, with the value that will be sent. The list comes from
+the same query as the "Mandatory fields" section above, so a field this file has
+never heard of still appears:
+
+```bash
+curl -s -u "$E:$JIRA_API_TOKEN" \
+  "$SITE/rest/api/3/issue/createmeta/<PROJECT>/issuetypes/<TYPE_ID>" \
+| jq -r '.fields[] | select(.required) | "\(.fieldId)\t\(.name)"'
+```
+
+```
+summary                              filled
+description                          filled
+customfield_12338 Potential Risks    filled
+customfield_12361 Acceptance Test    filled
+duedate Due date                     MISSING — ask the user
+```
+
+`MISSING` on any line means the create does not run. A required field with no
+sensible value from the work is a question for the user, never an `N/A`.
+
+**Content — the five things brevity may never remove**, one line each, so what
+was left out is visible while it can still be put back:
 
 ```
 Cause / mechanism:      present | absent — <one phrase why>
@@ -266,20 +291,16 @@ Risk condition + cost:  present | absent — <one phrase why>
 How it is verified:     present | absent — <one phrase why>
 ```
 
-**The risk and verification lines read `present` wherever the issue type
-requires those fields, and `createmeta` is what says so.** On `Optimization
-Task`, the type this project files, `Potential Risks` and `Acceptance Test` are
-both required: the create fails without them, and `N/A` is banned (see "Values
-that are never empty"). A genuinely low risk is written as what makes it low,
-"config-only change, no runtime path touched", and that sentence is the content,
-not a placeholder. An `absent` on either line then means the ticket is not
-ready, not that the field did not apply.
+The last two lines exist only when the type has a field behind them — they are
+about the content of `Potential Risks` and `Acceptance Test`, and a type without
+those fields has nothing for them to describe.
 
-On a type that carries neither field — `DevOps Task` here, which requires a due
-date and two selects instead — the two lines drop out of the checklist rather
-than being answered. Read `createmeta` for the type being filed; a flat "these
-fields are required" would be false on the neighbouring type in the same
-project.
+Where the field is required, its content line reads `present` or the ticket is
+not ready. On `Optimization Task`, the type this project files, that covers both
+risk and acceptance. `N/A` is banned either way (see "Values that are never
+empty"): a genuinely low risk is written as what makes it low, "config-only
+change, no runtime path touched", and that sentence is the content, not a
+placeholder.
 
 The other three may be `absent` with a phrase after them: the cause is obvious
 from the outcome, there was no constraint to record, nothing neighbouring needed

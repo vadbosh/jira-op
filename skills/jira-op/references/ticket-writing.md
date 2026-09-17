@@ -75,6 +75,11 @@ behaviour or operations changed.
 
 ## Before creating
 
+- **Print the required fields of the issue type, with the value each will get.**
+  The list is read from the project's `createmeta`, never from a remembered set:
+  custom fields differ per project and per type, and a field nobody printed is a
+  field nobody filled. Any line without a value is a question for the user, and
+  the create waits for the answer.
 - **Print the content checklist with the draft**, one line per item, before
   anything is created:
 
