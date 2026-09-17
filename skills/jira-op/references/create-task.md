@@ -161,6 +161,26 @@ someone deciding whether to care, not by someone implementing from them.
 A long description is not thoroughness. It is the part of the work the author
 could not compress yet, and it costs every future reader the same minute.
 
+**What brevity may never remove.** The target is a shorter *retelling*, not a
+shorter *ticket*: a description that dropped a fact the reader needs has not
+been compressed, it has been damaged. These stay, at whatever length they need:
+
+- **the cause or the mechanism**, when it is not obvious from the outcome — the
+  reason the work exists is what stops the same thing being proposed again.
+- **the constraint that decided the approach** — a plan limit, a platform that
+  cannot do the obvious thing, a rule the team set. Without it the next reader
+  re-argues a settled decision.
+- **what is out of scope, and why** — the boundary is the most-read part of a
+  large ticket, because that is where two people's assumptions differ.
+- **the condition under which a risk fires**, and what it costs when it does.
+- **how the work is verified** — the command and the shape of a good result.
+
+So a genuinely large or cross-cutting task gets its ten or twelve sentences and
+is right at that length, while a single-area task that fits in three is wrong at
+ten. Judge by what the reader has to be told, never by a line count: a section
+that keeps the five items above and nothing else is already as short as it can
+honestly be.
+
 **1. Write the description as a file, in Jira wiki markup.**
 
 The description reaches Jira through the v2 API, which converts plain text
