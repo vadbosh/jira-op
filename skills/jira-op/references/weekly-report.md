@@ -229,9 +229,9 @@ team rather than a person. `docs/example-weekly-update.txt` is a filled-in
 example.
 
 **Two shapes are accepted, and the team's existing one wins.** The compact shape
-is the one above: Title Case titles, items as `<KEY> — <outcome>` grouped under
-a workstream line, one `Owner:` for the whole Next Week section, risks with no
-severity marker. The fuller shape writes the titles in sentence case, quotes the
+is the one above: Title Case titles, items as `<KEY> — <outcome>` in one flat
+list, one `Owner:` for the whole Next Week section, risks with no severity
+marker. The fuller shape writes the titles in sentence case, quotes the
 ticket title after the key, marks a risk 🔴/🟡 and puts an `Owner:` on each Next
 Week item. Read the report the team is already sending and match it; never
 convert an existing report from one shape to the other.
@@ -255,11 +255,11 @@ Section by section:
   person, an access, or a priority call. Same rule.
 - **✅ What Went Well** — **two sentences per item, three at the outside.**
   The key, then what was done and what came out of it. In the compact shape that
-  is `<KEY> — <outcome>` under a workstream line; in the fuller shape the ticket
-  title follows the key in quotes with a short label of the nature of the work
-  (`Query optimization`, `Production issue investigation`, `Cross-team
-  coordination`). Work with no ticket — coordination, sprint scoping, reviews —
-  is a plain line in the same group. Past tense, no first person.
+  is `<KEY> — <outcome>`; in the fuller shape the ticket title follows the key in
+  quotes with a short label of the nature of the work (`Query optimization`,
+  `Production issue investigation`, `Cross-team coordination`). Work with no
+  ticket — coordination, sprint scoping, reviews — is a plain line in the same
+  list. Past tense, no first person.
 
   **This section is a summary, not a retelling of the ticket.** The reader
   scans six or eight items in a minute and opens the ticket when they want
@@ -314,9 +314,19 @@ Section by section:
           separate Jira items.
   ```
 
-  Ask the user which long tickets were worked on when the changelog is silent —
-  that is the one fact the tracker cannot answer. A ticket they did not touch
-  goes to `🔭 Next Week`; one they did goes here.
+  **This is the default, not a question.** Every long-running ticket that was in
+  a working status inside the window is written up here with that wording, with
+  no changelog evidence required and nothing asked first. Only an explicit
+  statement from the user that a ticket was not touched moves it out of this
+  section, and then it is one line under `🔭 Next Week`.
+
+  **A flat list is the default — no headings inside the section.** Every item,
+  long ticket or not, is one entry in one list. Group under a workstream line
+  only when the user asks for it, and then name the group after the work
+  (`Gateway API migration`, `Production bugs`), never after the age of the
+  tickets: "Long-running workstreams" sorts the report by how old its tickets
+  are, which is the tracker's bookkeeping in a different costume and says
+  nothing about what was done.
 - **⚠️ What Didn't Go Well / Risks** — one item per risk, naming the ticket
   where there is one, with a severity marker (🔴 / 🟡) in the fuller shape and
   none in the compact one. Each item states **Impact:** and **Mitigation:**
@@ -561,16 +571,20 @@ invented for the report. The phrase states a fact about the tracker (3b bans
 exactly that), and it reads as a stalled task to everyone who did not do the
 work.
 
-What to write instead depends on one question the tracker cannot answer — was
-the ticket worked on:
+What to write instead has a default and one exception:
 
-- **worked on, nothing recorded** — an item in `✅ What Went Well` saying the
-  work continued along the plan recorded in the ticket, and that its steps live
-  in that plan rather than in separate Jira items. Two sentences, no invented
-  outcome. The wording is in the `✅` section of 3a.
-- **not worked on** — one line in `🔭 Next Week` as the committed next step,
-  and left out of `✅ What Went Well` for that week. Still in the report:
-  dropping the ticket reads as abandoned.
+- **the default — nothing recorded, and that is normal** — an item in
+  `✅ What Went Well` saying the work continued along the plan recorded in the
+  ticket, and that its steps live in that plan rather than in separate Jira
+  items. Two sentences, no invented outcome, no question asked first. The
+  wording is in the `✅` section of 3a. Every long ticket that was in a working
+  status inside the window gets this item, including the ones whose changelog is
+  empty for the window.
+- **the exception — the user says it was not touched** — one line in
+  `🔭 Next Week` as the committed next step, and left out of
+  `✅ What Went Well` for that week. Only their word puts a ticket here; an
+  empty changelog does not. Still in the report either way: dropping the ticket
+  reads as abandoned.
 
 Repeating last week's paragraph is the other failure this section exists to
 prevent — the item says what the week added, not what the ticket is about.

@@ -9,7 +9,6 @@ Awaiting PROJ-901: staging database dump needed before the fixture work can
 start. Relying on: D. Owner.
 
 ✅ What Went Well
-Cluster component maintenance
 PROJ-707 — Scheduled update of node AMI images and cluster plugins across three
 clusters. Work continued along the plan recorded in the ticket itself; the task
 spans weeks, so its steps are tracked in that plan rather than as separate Jira
@@ -17,13 +16,11 @@ items.
 PROJ-243 — Gateway API rollout in the sandbox cluster: gatewayclasses, gateway,
 proxies and routes deployed, following the earlier decision to implement the
 controller via Terraform.
-Met with the platform team to agree which routes move first and what has to be
-in place before the cutover.
-
-Blog migration
 PROJ-717 — Moved the blog from the production path to the staging host,
 including the database and the uploaded content. Closed on August 18; acceptance
 was a working staging host.
+Met with the platform team to agree which routes move first and what has to be
+in place before the cutover.
 
 ⚠️ What Didn't Go Well / Risks
 The staging host has no monitoring yet, so a failure there is noticed by a
@@ -65,11 +62,12 @@ Note what the example does and does not contain:
   file name.
 - Section titles are in Title Case, exactly as written above, and the markers
   are emoji because the destination renders them.
-- What Went Well groups items under a workstream line when there is more than
-  one strand of work; a single strand needs no grouping. An item is the key, an
-  em dash and the outcome — no quoted ticket title, and no label.
+- What Went Well is one flat list, with no headings inside the section. An item
+  is the key, an em dash and the outcome — no quoted ticket title, and no label.
+  Grouping under a workstream line happens only when asked for, and the group is
+  then named after the work, never after the age of its tickets.
 - Work with no ticket — a meeting, a review, coordination — is a plain line in
-  the same group.
+  the same list.
 - Two of the three tickets recorded no transition that week. They are here
   because they were in progress during the window — status WAS "In Progress"
   DURING is the list, and a status change is not required.
