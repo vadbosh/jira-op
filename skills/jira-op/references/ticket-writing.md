@@ -84,12 +84,17 @@ behaviour or operations changed.
   anything is created:
 
   ```
+  Distinct parts:         <n> repositories · <n> decisions · <n> risks · reversible
   Cause / mechanism:      present | absent — <one phrase why>
   Deciding constraint:    present | absent — <one phrase why>
   Out of scope + reason:  present | absent — <one phrase why>
   Risk condition + cost:  present | absent — <one phrase why>
   How it is verified:     present | absent — <one phrase why>
   ```
+
+  Length follows that first line: one sentence per part the reader has to tell
+  apart, plus the five items. A ticket is long because it has many separable
+  parts, never because the work felt important.
 
   These five are what a short ticket loses first, and losing them is invisible
   in a text that reads well. The last two lines have no `absent` where the issue

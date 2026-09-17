@@ -161,6 +161,22 @@ someone deciding whether to care, not by someone implementing from them.
 A long description is not thoroughness. It is the part of the work the author
 could not compress yet, and it costs every future reader the same minute.
 
+**What makes a ticket large is countable, not important.** "This is significant
+work, so it needs more text" is how a one-area change acquires twelve
+sentences. Length follows the number of things the reader has to tell apart:
+
+- repositories, systems, environments or components touched;
+- independent decisions taken;
+- risks with different firing conditions;
+- dependencies on another team, another ticket or an access;
+- whether the change is reversible.
+
+**One sentence per distinct part, plus the five items below.** Anything that
+does not distinguish one part from another is retelling, whatever the work was
+worth. A cross-cutting change earns its ten or twelve sentences because it has
+ten or twelve things to separate; a single-area change does not earn them by
+being urgent.
+
 **What brevity may never remove.** The target is a shorter *retelling*, not a
 shorter *ticket*: a description that dropped a fact the reader needs has not
 been compressed, it has been damaged. These stay, at whatever length they need:
@@ -297,12 +313,19 @@ that disagrees with `SITE.md` means the create screen changed: re-run
 was left out is visible while it can still be put back:
 
 ```
+Distinct parts:         <n> repositories · <n> decisions · <n> risks · reversible | irreversible
 Cause / mechanism:      present | absent — <one phrase why>
 Deciding constraint:    present | absent — <one phrase why>
 Out of scope + reason:  present | absent — <one phrase why>
 Risk condition + cost:  present | absent — <one phrase why>
 How it is verified:     present | absent — <one phrase why>
 ```
+
+The first line is what makes the length checkable in two seconds: a long
+description against `1 repository · 0 decisions · 1 risk` is padded, and three
+sentences against `5 repositories · 3 decisions · 4 risks` are missing
+something. Count only what the ticket actually distinguishes — the count is a
+claim about the text, and it is read next to it.
 
 The last two lines exist only when the type has a field behind them — they are
 about the content of `Potential Risks` and `Acceptance Test`, and a type without
