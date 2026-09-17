@@ -327,6 +327,18 @@ Section by section:
   tickets: "Long-running workstreams" sorts the report by how old its tickets
   are, which is the tracker's bookkeeping in a different costume and says
   nothing about what was done.
+
+  **One blank line between items, and every item starts with its key.** The file
+  has no bullet characters and wraps near 80 characters, so two adjacent items
+  read as one paragraph: an item with no key at its head — a meeting, a review,
+  a finding — is then indistinguishable from a continuation of the ticket above
+  it. Measured on a real report, where a line about three fixed defects merged
+  into the ticket before it and had to be asked about. A finding that came out
+  of a ticket's work carries that ticket's key; only genuinely ticketless work
+  starts with a phrase instead, and the blank line is what keeps it separate.
+
+  The same separation applies in Risks, Key Decisions and Next Week, for the
+  same reason.
 - **⚠️ What Didn't Go Well / Risks** — one item per risk, naming the ticket
   where there is one, with a severity marker (🔴 / 🟡) in the fuller shape and
   none in the compact one. Each item states **Impact:** and **Mitigation:**

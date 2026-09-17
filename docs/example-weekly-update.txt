@@ -13,12 +13,15 @@ PROJ-707 — Scheduled update of node AMI images and cluster plugins across thre
 clusters. Work continued along the plan recorded in the ticket itself; the task
 spans weeks, so its steps are tracked in that plan rather than as separate Jira
 items.
+
 PROJ-243 — Gateway API rollout in the sandbox cluster: gatewayclasses, gateway,
 proxies and routes deployed, following the earlier decision to implement the
 controller via Terraform.
+
 PROJ-717 — Moved the blog from the production path to the staging host,
 including the database and the uploaded content. Closed on August 18; acceptance
 was a working staging host.
+
 Met with the platform team to agree which routes move first and what has to be
 in place before the cutover.
 
@@ -68,6 +71,9 @@ Note what the example does and does not contain:
   then named after the work, never after the age of its tickets.
 - Work with no ticket — a meeting, a review, coordination — is a plain line in
   the same list.
+- One blank line between items, and every item that belongs to a ticket starts
+  with its key. Without both, two wrapped items read as one paragraph and a
+  keyless line looks like a continuation of the ticket above it.
 - Two of the three tickets recorded no transition that week. They are here
   because they were in progress during the window — status WAS "In Progress"
   DURING is the list, and a status change is not required.
