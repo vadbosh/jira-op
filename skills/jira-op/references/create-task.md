@@ -266,8 +266,17 @@ Risk condition + cost:  present | absent — <one phrase why>
 How it is verified:     present | absent — <one phrase why>
 ```
 
-`absent` is a legitimate answer — a task with no real risk has no risk
-condition. What is not legitimate is `absent` with nothing after it, or a line
+**The risk and verification lines always read `present`.** This project files
+`Optimization Task`, where `Potential Risks` and `Acceptance Test` are required
+by the API: the create fails without them, and `N/A` is banned (see "Values that
+are never empty"). A genuinely low risk is written as what makes it low,
+"config-only change, no runtime path touched", and that sentence is the content,
+not a placeholder. An `absent` on either line means the ticket is not ready, not
+that the field did not apply.
+
+The other three may be `absent` with a phrase after them: the cause is obvious
+from the outcome, there was no constraint to record, nothing neighbouring needed
+excluding. What is never legitimate is `absent` with nothing after it, or a line
 quietly missing from the list.
 
 The checklist exists because the five items above are a judgement and the length
