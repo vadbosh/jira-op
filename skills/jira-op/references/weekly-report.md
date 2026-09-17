@@ -232,8 +232,8 @@ example.
 is the one above: Title Case titles, items as `<KEY> — <outcome>` in one flat
 list, one `Owner:` for the whole Next Week section, risks with no severity
 marker. The fuller shape writes the titles in sentence case, quotes the
-ticket title after the key, marks a risk 🔴/🟡 and puts an `Owner:` on each Next
-Week item. Read the report the team is already sending and match it; never
+ticket title after the key and puts an `Owner:` on each Next Week item. Risks
+carry `- 🔴`/`- 🟡` and a key in both shapes — see that section below. Read the report the team is already sending and match it; never
 convert an existing report from one shape to the other.
 
 What the shapes do **not** change — these hold in both, and the rest of this
@@ -339,10 +339,19 @@ Section by section:
 
   The same separation applies in Risks, Key Decisions and Next Week, for the
   same reason.
-- **⚠️ What Didn't Go Well / Risks** — one item per risk, naming the ticket
-  where there is one, with a severity marker (🔴 / 🟡) in the fuller shape and
-  none in the compact one. Each item states **Impact:** and **Mitigation:**
-  in both. A risk belongs here only when it
+- **⚠️ What Didn't Go Well / Risks** — one item per risk, written the same way
+  in both shapes:
+
+  ```
+  - 🟡 PROJ-123 — <the risk in one clause>. Impact: <one sentence>.
+    Mitigation: <one sentence>.
+  ```
+
+  A leading `-`, a severity marker (🔴 / 🟡), the ticket key where there is one,
+  then the risk, `Impact:` and `Mitigation:`. Continuation lines are indented by
+  two spaces. This is the one section that keeps its bullets: a risk is read and
+  acted on individually, and the marker is what makes the severe one findable in
+  a page of text. A risk belongs here only when it
   comes out of the work done this week: something that failed, blocked,
   regressed, or was left unresolved in a task that was actually worked on.
 

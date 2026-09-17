@@ -26,10 +26,10 @@ Met with the platform team to agree which routes move first and what has to be
 in place before the cutover.
 
 ⚠️ What Didn't Go Well / Risks
-The staging host has no monitoring yet, so a failure there is noticed by a
-person rather than by an alert. Impact: a broken staging blog can sit unnoticed
-for a day and block the content team. Mitigation: the host joins the standard
-monitoring set next week, tracked in PROJ-717.
+- 🟡 PROJ-717 — the staging host has no monitoring yet, so a failure there is
+  noticed by a person rather than by an alert. Impact: a broken staging blog can
+  sit unnoticed for a day and block the content team. Mitigation: the host joins
+  the standard monitoring set next week.
 
 📌 Key Decisions Made This Week
 Implement the gateway controller via Terraform rather than by hand. Why: the
@@ -81,8 +81,9 @@ Note what the example does and does not contain:
   not an empty week: the work follows the plan written inside the ticket, so the
   item says so. The phrase "no movement this week" is never written. A ticket
   nobody touched is one line under Next Week instead.
-- A risk states the risk, then Impact: and Mitigation:, each one sentence. No
-  severity markers.
+- A risk is a bulleted item: a leading -, a severity marker, the ticket key, the
+  risk, then Impact: and Mitigation:, each one sentence. Risks keep their
+  bullets and markers in both shapes; the other sections have neither.
 - A decision states what was decided, then Why: and Decision makers:.
 - Next Week opens with a single Owner: line for the section, then the committed
   items — no per-item owner unless the section mixes owners.
