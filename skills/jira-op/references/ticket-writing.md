@@ -87,11 +87,12 @@ behaviour or operations changed.
   ```
 
   These five are what a short ticket loses first, and losing them is invisible
-  in a text that reads well. The last two lines have no `absent`: where the
-  project's issue type requires a risk and an acceptance field, they cannot be
-  skipped and `N/A` is not an answer — a low risk is written as what makes it
-  low. The first three may be `absent` with a reason after them. A missing line
-  is never fine.
+  in a text that reads well. The last two lines have no `absent` where the issue
+  type requires a risk and an acceptance field — `createmeta` says which types
+  do, and the fields differ between types in one project. Where they are
+  required they cannot be skipped and `N/A` is not an answer: a low risk is
+  written as what makes it low. The first three may be `absent` with a reason
+  after them. A missing line is never fine.
 - **Search for it first.** A duplicate costs more than the search:
   `jira issue list -q'project = <KEY> AND text ~ "<subject>"' --plain --paginate 15`
 - Check the project's required fields — they differ per issue type.

@@ -266,13 +266,20 @@ Risk condition + cost:  present | absent — <one phrase why>
 How it is verified:     present | absent — <one phrase why>
 ```
 
-**The risk and verification lines always read `present`.** This project files
-`Optimization Task`, where `Potential Risks` and `Acceptance Test` are required
-by the API: the create fails without them, and `N/A` is banned (see "Values that
-are never empty"). A genuinely low risk is written as what makes it low,
+**The risk and verification lines read `present` wherever the issue type
+requires those fields, and `createmeta` is what says so.** On `Optimization
+Task`, the type this project files, `Potential Risks` and `Acceptance Test` are
+both required: the create fails without them, and `N/A` is banned (see "Values
+that are never empty"). A genuinely low risk is written as what makes it low,
 "config-only change, no runtime path touched", and that sentence is the content,
-not a placeholder. An `absent` on either line means the ticket is not ready, not
-that the field did not apply.
+not a placeholder. An `absent` on either line then means the ticket is not
+ready, not that the field did not apply.
+
+On a type that carries neither field — `DevOps Task` here, which requires a due
+date and two selects instead — the two lines drop out of the checklist rather
+than being answered. Read `createmeta` for the type being filed; a flat "these
+fields are required" would be false on the neighbouring type in the same
+project.
 
 The other three may be `absent` with a phrase after them: the cause is obvious
 from the outcome, there was no constraint to record, nothing neighbouring needed
