@@ -23,17 +23,38 @@ Opencode.
 
 ## Why jira-op exists
 
-Two failures repeat with a generic Jira integration.
+Two failures repeat every week, and both cost an engineer time.
 
-**The create screen rejects the ticket** and the error names a `customfield_*`
-id nobody recognises. Required fields differ per project and per issue type,
-and the field names in the CLI differ from the ids in the API.
+**The ticket does not get filed, and the reason is not visible.** Required
+fields differ per project and per issue type. REST answers `400` with a list
+like `customfield_19879` — an id, no field name. jira-cli takes the same fields
+by word (`--custom "devops-category"`), and the words do not match the ids.
+Worse: `jira issue create --no-input` without `</dev/null` does not fail, it
+hangs — `rc=124` on the timeout, nothing created, nothing said
+([jira-cli#948](https://github.com/ankitpokhrel/jira-cli/issues/948), reproduced
+on 1.7.0). The skill reads `createmeta` once, keeps the ids in `SITE.md`, and
+writes through REST with the ids `createmeta` returned.
 
-**The weekly report becomes an audit of the board.** Read straight from Jira,
-it fills with ticket age, carry-over counts and empty fields — accurate, useless
-and faintly accusatory. The person reading it wants to know what was done.
+**The weekly report comes out about the board, not about the work.** Read
+straight from Jira it fills with ticket age, sprint carry-over counts, empty
+fields and lines saying no comments or transitions were recorded this week. It
+is accurate, and it reads as an accusation; the team lead wants what was done
+and what was decided. The skill fixes the sections and holds items to two
+sentences. Unstarted work never reaches the report — the whole `To Do`
+category, not one status. The delta comes from the ticket's own changelog, so
+last week's report file is not needed.
 
-This skill encodes the answers to both, and the traps found while getting there.
+Beyond those two, four traps are written down, each reproduced against a live
+site:
+
+- `ORDER BY` inside `-q` returns `400 Expecting ',' but got 'ORDER'` — sort with
+  the `--order-by` flag;
+- a list without `--paginate` is cut at the eighth row and says nothing — that
+  is how a ticket was reported as "not yours" when it was;
+- `jira issue view` shows one comment, so a discussed ticket looks untouched;
+  pass `--comments 10`;
+- the week boundary is written `< NEXT_MON`: `<= WEEK_END` stops at Sunday 00:00
+  and drops the whole last day.
 
 ## What is in it
 
