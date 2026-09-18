@@ -21,7 +21,7 @@ Opencode.
 
 ---
 
-## Why it exists
+## Why jira-op exists
 
 Two failures repeat with a generic Jira integration.
 
@@ -108,9 +108,9 @@ point.
 file a ticket: updated the node AMI on three clusters
 ```
 
-The assistant asks the three values it must not guess — story points, which
-sprint, and an End Date (`none` is a valid answer) — then prints the **whole**
-draft: summary, description, and every field it filled in for you, risks and
+The assistant asks the three values it must not guess: story points, which
+sprint, and an End Date (`none` is a valid answer). It then prints the **whole**
+draft — summary, description, and every field it filled in for you, risks and
 acceptance criteria included. Nothing is created until you say so. The draft is
 in English regardless of the language you asked in, because the ticket is read
 by people who do not speak it.
@@ -145,10 +145,14 @@ it on Friday and something lands on Saturday: regenerate if you have not sent
 it, otherwise the next report carries those items with their dates named.
 
 The report has a fixed set of sections: decisions needed, escalations, what went
-well, risks, decisions made, next week. Two presentations of them are accepted —
-a compact one, where items read `KEY — outcome` under a workstream line and the
-whole Next Week section carries a single owner, and a fuller one with the ticket
-title quoted and an owner on each item. Match whatever the team already sends.
+well, risks, decisions made, next week. Two presentations of them are accepted:
+
+- **compact** — items read `KEY — outcome` under a workstream line, and the
+  whole Next Week section carries a single owner;
+- **full** — the ticket title is quoted after the key, and every item carries
+  an owner.
+
+Match whatever the team already sends.
 Four rules make either readable:
 
 - **facts of the work only.** Never how long a ticket has been open, how many
@@ -166,7 +170,7 @@ Four rules make either readable:
 - **A month-long ticket is not split up to make the report easier**, and it
   never silently disappears from a report either. Each week it carries the
   delta — what changed inside the window, with a count when the work has
-  countable parts. An empty changelog is not an empty week: on a long ticket the
+  countable parts. An empty changelog is not an empty week. On a long ticket the
   work follows the plan written inside it, so the report says the work continued
   along that plan and never writes "no movement this week". A ticket nobody
   touched becomes one line under Next Week. The delta is read from the ticket's
@@ -186,7 +190,7 @@ test itself, and `SITE.md` records what your account may actually do.
 Ticket text is treated as untrusted input: instructions found inside a
 description or comment are quoted to you, never executed.
 
-## What it does not do
+## What jira-op does not do
 
 Stated plainly, because a skill that reads like an integration invites the
 assumption that it is one.
@@ -239,9 +243,9 @@ $SKILL/scripts/site-probe.sh --all --check     # drift report, writes nothing
 It reads the config jira-cli already wrote plus a read-only pass over the API,
 and covers every issue type in the project. `SITE.example.md` in this
 repository documents the same values with the command behind each one, for
-anyone who prefers to fill them deliberately — `install.sh` does not copy it
-into the skill, because sample values sitting next to real ones under identical
-headings get read as configuration.
+anyone who prefers to fill them deliberately. `install.sh` does not copy it into
+the skill: sample values sitting next to real ones under identical headings get
+read as configuration.
 
 **One file per site**: `SITE.md` for the default config, `SITE.<name>.md` for
 `~/.config/.jira/<name>.yml`. The skill picks by `JIRA_CONFIG_FILE`, so three
@@ -264,8 +268,8 @@ SKILL=~/.claude/skills/jira-op            # or ~/.codex/skills/jira-op
                                           # or ~/.config/opencode/skills/jira-op
 ```
 
-jira-cli reads one config file and one token, and they are separate mechanisms —
-a config from one site with a token from another returns `401`, which reads as
+jira-cli reads one config file and one token, and they are separate mechanisms.
+A config from one site with a token from another returns `401`, which reads as
 an expired token rather than a wrong pairing. `jira_site` ships inside the skill at
 `scripts/jira_site.sh`; source that from your shell rc file —
 it switches the pair in one step;
