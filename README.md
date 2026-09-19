@@ -328,6 +328,16 @@ Found the hard way, all against 1.7.0:
 - A numbered list is `#`. `1.` is not a marker — those lines arrive as
   paragraphs with the digits in them, and one list item must fit on one line.
 
+## Sending a change
+
+Commit messages are written in English, body included. The history is the only
+place the reason for a change survives, and whoever can read the code can read
+the message. A message that quotes Russian — a heading being renamed, a word
+being replaced — keeps the quotation: there the Russian is the subject.
+
+The documentation itself is bilingual and stays that way: `README.md` and
+`README.RU.md` are edited as a pair.
+
 ## Licence
 
 MIT — see [LICENSE](LICENSE).
