@@ -53,8 +53,8 @@ site:
   is how a ticket was reported as "not yours" when it was;
 - `jira issue view` shows one comment, so a discussed ticket looks untouched;
   pass `--comments 10`;
-- the week boundary is written `< NEXT_MON`: `<= WEEK_END` stops at Sunday 00:00
-  and drops the whole last day.
+- the window's upper bound is written `< AFTER_END`: `<= WEEK_END` stops at 00:00
+  of the last day and drops the whole of it.
 
 ## What is in it
 
@@ -154,16 +154,18 @@ weekly report
 weekly report for last week
 ```
 
-It reads the calendar week (Monday–Sunday), asks whether the window contained
+It asks which dates to report — the window is not fixed: it covered
+Monday–Sunday, then Friday–Thursday — and proposes the one that follows the
+last report in the directory. Then it asks whether the window contained
 vacation or holidays, and **writes a plain-text file in the directory the
 assistant was started in** — `weekly-update-<start>_<end>.txt`. The reply is
 the path; the content is not printed into the chat, and an existing file is
 never overwritten. Nothing is published to Jira or sent anywhere.
 
-The window is the whole week — Monday 00:00 to Sunday 23:59 — and is never
-shortened to the day the report is written, because weekend work is work. Run
-it on Friday and something lands on Saturday: regenerate if you have not sent
-it, otherwise the next report carries those items with their dates named.
+The window is whole days — the first day 00:00 to the last day 23:59 — and is
+never shortened to the moment the report is written. Run it before the window
+closes and something lands after: regenerate if you have not sent it,
+otherwise the next report carries those items with their dates named.
 
 The report has a fixed set of sections: decisions needed, escalations, what went
 well, risks, decisions made, next week. Two presentations of them are accepted:

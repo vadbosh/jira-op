@@ -4,46 +4,64 @@ Produced at the end of the week from the tickets touched that week. It is a
 written report for people, not a ticket dump: every bullet says what changed
 and why it matters, and no bullet exists only because a ticket moved.
 
-## 1. Fix the reporting window
+## 1. Ask for the reporting window
 
-The window is a **calendar week, Monday to Sunday**. Sprints on this board are
-dynamic and do not align to weeks, so the sprint window is not the report
-window — the sprint name only labels the report.
+**The window is not fixed — ask for it every time, before reading anything.**
+It has already moved once: the report covered Monday–Sunday, then
+Friday–Thursday, and it can move again. A window computed from the weekday
+("last monday") is right only until that happens, and then every date in the
+report is quietly wrong. Sprints on this board are dynamic and do not align to
+the window either — the sprint name only labels the report.
+
+Offer a default the user can accept with one word, and take it from the
+previous report rather than from the calendar:
 
 ```bash
 date -I
-WEEK_START=$(date -d 'last monday' +%F)
-WEEK_END=$(date -d "$WEEK_START +6 days" +%F)
-NEXT_MON=$(date -d "$WEEK_START +7 days" +%F)
+ls weekly-update-*.txt 2>/dev/null | sort | tail -1   # last window written here
+```
+
+- a previous file exists → propose the window that follows it: starting the
+  day after its end date, with the same length;
+- none → propose the 7 days ending today, and say it is a guess.
+
+Ask it as one question and wait for the answer:
+
+```
+Report window: 2026-09-18 (Fri) .. 2026-09-24 (Thu), both days included — OK, or which dates?
+```
+
+Then fix it from the answer, never from the weekday:
+
+```bash
+WEEK_START=<first day, YYYY-MM-DD>          # as answered
+WEEK_END=<last day, YYYY-MM-DD, included>   # as answered
+AFTER_END=$(date -d "$WEEK_END +1 day" +%F)
 echo "$WEEK_START .. $WEEK_END"
 ```
 
-The window is the **whole** week: Monday 00:00 to Sunday 23:59. It is never
-shortened to the day the report is written. Weekend work happens — a
-maintenance window, a release, a fix on Saturday — and it belongs to the week
-it was done in, not to the next one.
+The window is **whole days**: `WEEK_START` 00:00 to `WEEK_END` 23:59. It is
+never shortened to the moment the report is written. Work on the last day, or
+over a weekend inside the window — a maintenance window, a release, a late fix
+— belongs to the window it was done in, not to the next one.
 
-Date-only bounds already express this: `>= WEEK_START` starts at Monday 00:00
-and `< NEXT_MON` ends at Sunday 23:59:59, in JQL and in the changelog
-comparisons alike. Never write `<= WEEK_END` — that stops at Sunday 00:00 and
-silently drops the whole of Sunday. `DURING ("$WEEK_START", "$NEXT_MON")` is
-inclusive at both ends, so an event at exactly next Monday 00:00 is counted
-twice across two reports; that is the cheaper error of the two.
+Date-only bounds already express this: `>= WEEK_START` starts at the first day
+00:00 and `< AFTER_END` ends at the last day 23:59:59, in JQL and in the
+changelog comparisons alike. Never write `<= WEEK_END` — that stops at the last
+day 00:00 and silently drops the whole last day. `DURING ("$WEEK_START",
+"$AFTER_END")` is inclusive at both ends, so an event at exactly `AFTER_END`
+00:00 is counted twice across two reports; that is the cheaper error of the
+two.
 
 `WEEK_END` is for the file name and for comparing date-only text such as
-`Update <date>:` lines, where a Sunday date matches `<= WEEK_END`. It is not a
-timestamp bound.
-
-The report is delivered **Friday evening or Saturday morning**, so the normal
-run lands inside the week it reports and `last monday` returns that week's
-Monday. Run on a Monday, it returns the *previous* Monday — also correct,
-because a Monday report closes the week that just ended.
+`Update <date>:` lines, where a last-day date matches `<= WEEK_END`. It is not
+a timestamp bound.
 
 **Delivering before the window closes leaves a tail.** Anything recorded after
 the file was written cannot be in it. Two ways out, in order:
 
 - the report has not been sent yet — regenerate it; the window is unchanged, so
-  the weekend material simply lands where it belongs;
+  the material from the rest of the window simply lands where it belongs;
 - it has been sent — the next report carries those items and names their dates
   in the sentence, so they read as the previous week's work rather than as this
   week's. Do not silently redate them, and do not drop them.
@@ -68,19 +86,19 @@ tickets to make it look busy.
 set -a; . ~/.config/.jira/token.env; set +a
 
 # everything of mine that moved in the window
-jira issue list -q"project = <PROJECT> AND assignee = currentUser() AND updated >= \"$WEEK_START\" AND updated < \"$NEXT_MON\" AND status NOT IN (<STATUS_NEW>)" \
+jira issue list -q"project = <PROJECT> AND assignee = currentUser() AND updated >= \"$WEEK_START\" AND updated < \"$AFTER_END\" AND status NOT IN (<STATUS_NEW>)" \
   --plain --columns key,type,status,summary,updated --paginate 15
 
 # what closed in the window — every status in the Closed group, not just one:
 # a ticket closed as Duplicate closed
-jira issue list -q"project = <PROJECT> AND assignee = currentUser() AND status CHANGED TO (<STATUS_TERMINAL>) DURING (\"$WEEK_START\", \"$NEXT_MON\")" \
+jira issue list -q"project = <PROJECT> AND assignee = currentUser() AND status CHANGED TO (<STATUS_TERMINAL>) DURING (\"$WEEK_START\", \"$AFTER_END\")" \
   --plain --columns key,status,summary --paginate 15
 
 # what was in flight at any point in the window — the backbone of the report.
 # Every working status, not only "In Progress": a week spent in Team Review or
 # Blocked is a week of work, and on some boards the ticket never passes through
 # a status literally called In Progress at all.
-jira issue list -q"project = <PROJECT> AND assignee = currentUser() AND status WAS IN (<STATUS_ACTIVE>) DURING (\"$WEEK_START\", \"$NEXT_MON\")" \
+jira issue list -q"project = <PROJECT> AND assignee = currentUser() AND status WAS IN (<STATUS_ACTIVE>) DURING (\"$WEEK_START\", \"$AFTER_END\")" \
   --plain --columns key,status,summary --paginate 15
 
 # what is still open right now and carries into next week
@@ -484,7 +502,7 @@ compared against a file:
 curl -s -u "$EMAIL:$JIRA_API_TOKEN" \
   "$SITE/rest/api/3/issue/<KEY>/changelog?maxResults=100" > /tmp/cl.json
 
-jq -r --arg a "$WEEK_START" --arg b "$NEXT_MON" '
+jq -r --arg a "$WEEK_START" --arg b "$AFTER_END" '
   .values[]
   | select(.created[0:10] >= $a and .created[0:10] < $b)
   | .created[0:10] as $d
@@ -504,12 +522,12 @@ F=description            # the field name exactly as the first listing printed i
                          # system fields are lower-case; a custom field is its
                          # display name, e.g. "Potential Risks"
 
-jq -r --arg a "$WEEK_START" --arg b "$NEXT_MON" --arg f "$F" '
+jq -r --arg a "$WEEK_START" --arg b "$AFTER_END" --arg f "$F" '
   [ .values[] | select(.created[0:10] >= $a and .created[0:10] < $b)
     | .items[] | select(.field == $f) ] as $d
   | if ($d|length) == 0 then "" else ($d[0].fromString // "") end' /tmp/cl.json > /tmp/before.txt
 
-jq -r --arg a "$WEEK_START" --arg b "$NEXT_MON" --arg f "$F" '
+jq -r --arg a "$WEEK_START" --arg b "$AFTER_END" --arg f "$F" '
   [ .values[] | select(.created[0:10] >= $a and .created[0:10] < $b)
     | .items[] | select(.field == $f) ] | last | .toString // ""
 ' /tmp/cl.json > /tmp/after.txt
@@ -535,10 +553,10 @@ never the source. Files get deleted and directories move; the changelog is the
 record.
 
 **One consequence worth stating:** the changelog dates the *record*, not the
-work. Inside one week that costs nothing — the window runs to Sunday 23:59, so
-a Saturday fix written up on Sunday is still this week's. Across weeks it does:
-work done weeks ago and written into the ticket now arrives in this week's
-delta.
+work. Inside one window that costs nothing — it runs to its last day 23:59, so
+a fix made one day and written up the next is still this window's. Across
+windows it does: work done weeks ago and written into the ticket now arrives
+in this week's delta.
 
 When the added text itself carries a date that falls in an earlier week, report
 it with that date and say when it was done. Do not present it as this week's
@@ -616,10 +634,10 @@ a window that never opened. Name it in `🚩 Decisions Needed` or in `⚠️ Ris
 with its Impact and what would unblock it. Do not infer a blocker from a quiet
 changelog — ask.
 
-**Leave the trace during the week, not on Friday.** One comment on the ticket
-at the end of the week — two or three sentences, what changed — makes the next
-report mechanical: last week's comment against this week's. It is also the only
-source that survives a compacted session.
+**Leave the trace during the week, not on the day the report is written.** One
+comment on the ticket at the end of the week — two or three sentences, what
+changed — makes the next report mechanical: last week's comment against this
+week's. It is also the only source that survives a compacted session.
 
 ## 4. Style rules
 
