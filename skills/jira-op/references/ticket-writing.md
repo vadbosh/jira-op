@@ -190,6 +190,43 @@ Rules that keep these useful rather than noisy:
   asked — see the safety rules in `SKILL.md`.
 - **Ask before publishing.** Drafting is free; publishing notifies watchers.
 
+## When the work continues on an existing ticket
+
+A ticket filed last week, and the work moved on: "add today's work to it as a
+continuation". A comment alone is not enough. The description and the
+risk/acceptance fields — what the issue view groups under *Key details* — are
+the ticket's **current** claim about the work, and the new work makes parts of
+them false. Measured on one ticket: the scope named scripts that no longer
+existed, *out of scope* named work already done, and the acceptance test
+checked a file that had been deleted — run as written, it would fail.
+
+1. **Read every field in its stored form**, not through `jira issue view`:
+   `GET /rest/api/2/issue/<KEY>?fields=description,<risk field>,<acceptance field>,<date fields>`
+   returns wiki markup. Name to the user each sentence the new work makes
+   wrong.
+2. **Do not rewrite the description.** Keep the original sections word for
+   word, add `h3. Update <YYYY-MM-DD>` with what changed, and correct *out of
+   scope* if part of it is now done. The date heading is what a weekly report
+   looks for.
+3. **Replace the risk and acceptance fields** when they describe what no longer
+   exists. An acceptance test is only useful if it can be run today.
+4. **Keep the comment** as the record of the step — it carries author and time.
+5. **Write the fields in one call**: `PUT /rest/api/2/issue/<KEY>` with
+   `{"fields": {...}}`. One change, one notification to the watchers.
+6. **Read back** with `?expand=renderedFields` and show what a reader sees.
+
+Description edits have no undo, so all drafts are shown before the write.
+
+**"Move the closing date" means whichever date the project tracks.** A project
+may have both the system `duedate` and its own end-date field (see `SITE.md`);
+on the ticket this was written from, `duedate` was empty and the end-date field
+held the date the user meant. Read both before writing, and write the one that
+is set.
+
+**Text with angle brackets goes through REST v2 in wiki markup**, comments
+included — `comment add --template` converts Markdown and drops `<…>` without
+an error. See `SKILL.md`, next to `jira issue comment add`.
+
 ## The verification comment
 
 When the work is done, the evidence goes on the ticket as a comment, not into

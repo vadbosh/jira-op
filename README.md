@@ -65,7 +65,7 @@ site:
 | `references/weekly-report.md` | the weekly update: window, sources, structure, tone |
 | `docs/example-weekly-update.txt` | what the produced file looks like, with the keys replaced |
 | `references/investigate.md` | read-only investigation of a ticket before acting |
-| `references/ticket-writing.md` | writing a ticket someone else can execute |
+| `references/ticket-writing.md` | writing a ticket someone else can execute, and adding a continuation to an existing one |
 | `references/commands.md` | jira-cli reference, with the flags that do not exist |
 | `SITE.example.md` | documents every site value with the command behind it — repository only, never installed |
 | `scripts/site-probe.sh` | generates that file from the live API — one per Jira site |

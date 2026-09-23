@@ -185,6 +185,7 @@ path in `references/create-task.md`.
 | Weekly engineering update built from the week's tickets | `references/weekly-report.md` |
 | Understand a ticket before acting on it — what to fetch, how to report it | `references/investigate.md` |
 | Write a ticket someone else can execute — body, acceptance criteria, evidence comment | `references/ticket-writing.md` |
+| Add a continuation to an existing ticket — comment plus the Key details it made stale | `references/ticket-writing.md`, "When the work continues" |
 
 The last two are project-agnostic: they hold no <PROJECT>-specific ids and work for
 any Jira project on this site.
