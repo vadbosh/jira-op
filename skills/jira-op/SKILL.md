@@ -160,6 +160,17 @@ ticket looks like a ticket nobody discussed. Pass `--comments 10`.
 `jira issue comment add` takes the body positionally or via `-T/--template`.
 There is no `-b` on that subcommand — that flag belongs to `create` and `edit`.
 
+**That body is Markdown, and the conversion loses text without saying so.**
+Measured on OP-805, 2026-09-23: `<name>` and `<cluster>` were dropped as HTML
+tags, and a heading line followed by a list came out glued to the first item.
+The command still printed `✓ Comment added`. A body with angle brackets, or
+one whose layout matters, goes through REST v2 in wiki markup instead —
+`{{…}}` for code, `*` for bullets, a blank line before a list — with
+`POST /rest/api/2/issue/<KEY>/comment` and `{"body": "<wiki text>"}`. To fix a
+comment already posted, `PUT` the same body to `…/comment/<id>`: editing it
+leaves one comment, where posting a second one notifies the watchers again.
+Read it back either way — `?expand=renderedBody` shows what readers see.
+
 **Anything that could ask a question hangs when stdin is not a terminal** —
 which is every command an assistant runs. `--no-input` does not cover it
 ([jira-cli#948](https://github.com/ankitpokhrel/jira-cli/issues/948)). Append
