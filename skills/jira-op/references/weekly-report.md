@@ -13,22 +13,17 @@ Friday–Thursday, and it can move again. A window computed from the weekday
 report is quietly wrong. Sprints on this board are dynamic and do not align to
 the window either — the sprint name only labels the report.
 
-Offer a default the user can accept with one word, and take it from the
-previous report rather than from the calendar:
+Ask the user to enter it — first and last day, both included — and wait for
+the answer. Do not propose a window: previous report files are not kept, so
+there is nothing to continue from, and a guess from the calendar is exactly
+what this step exists to avoid. Give today's date so the answer is easy:
 
 ```bash
-date -I
-ls weekly-update-*.txt 2>/dev/null | sort | tail -1   # last window written here
+date '+%F (%a)'
 ```
 
-- a previous file exists → propose the window that follows it: starting the
-  day after its end date, with the same length;
-- none → propose the 7 days ending today, and say it is a guess.
-
-Ask it as one question and wait for the answer:
-
 ```
-Report window: 2026-09-18 (Fri) .. 2026-09-24 (Thu), both days included — OK, or which dates?
+Today is 2026-09-23 (Wed). Which period is this report for? First and last day, both included.
 ```
 
 Then fix it from the answer, never from the weekday:

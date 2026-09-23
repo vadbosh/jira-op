@@ -154,9 +154,9 @@ weekly report
 weekly report for last week
 ```
 
-It asks which dates to report — the window is not fixed: it covered
-Monday–Sunday, then Friday–Thursday — and proposes the one that follows the
-last report in the directory. Then it asks whether the window contained
+It asks you to enter the period — first and last day — because the window is
+not fixed: it covered Monday–Sunday, then Friday–Thursday. Nothing is proposed
+or computed from the weekday. Then it asks whether the window contained
 vacation or holidays, and **writes a plain-text file in the directory the
 assistant was started in** — `weekly-update-<start>_<end>.txt`. The reply is
 the path; the content is not printed into the chat, and an existing file is
