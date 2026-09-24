@@ -250,9 +250,11 @@ the type, every time, unless the user names a different one.
   supplied.
 - **The type is the first line of the draft.** If it is not `<ISSUE_TYPE>`,
   the draft says which words of the user chose it.
-- **No `<ISSUE_TYPE>` in the site file** — ask. Do not fall back to the type of
-  a similar-looking ticket, and do not count which type the user files most.
-  Offer to add `issue_type_default` to the config so the question stops.
+- **No `<ISSUE_TYPE>` in the site file** — ask. The site file then lists the
+  types of the user's recent tickets with counts: offer those as the choices,
+  not every type on the board. Never answer the question yourself — not with
+  the top of that list, not with the type of a similar-looking ticket. Offer to
+  add `issue_type_default` to the config so the question stops.
 
 **Every value the user supplies needs a field on that type.** Story points,
 dates, sprint, priority: each maps to a field in `createmeta` for the create

@@ -275,7 +275,7 @@ read as configuration.
 config (`~/.config/.jira/.config.yml` or `<name>.yml`). The probe checks the
 project has the type and copies it into the site file; every create uses it
 unless you name another. Nothing is inferred: without the key the skill asks
-for the type. Nothing about a particular Jira is written into the skill itself.
+for the type, offering the types of your last 100 tickets with their counts. Nothing about a particular Jira is written into the skill itself.
 `jira init` rewrites the config and drops the key — add it back afterwards.
 
 **One file per site**: `SITE.md` for the default config, `SITE.<name>.md` for

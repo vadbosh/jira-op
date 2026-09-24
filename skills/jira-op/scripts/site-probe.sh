@@ -160,15 +160,40 @@ SAMPLE="$(jira issue list -p "$PROJECT" --order-by created --reverse --plain --n
 # skill asks.
 ISSUE_TYPE_DEFAULT="$(cfg_top issue_type_default)"
 
+# Only when <ISSUE_TYPE> is unset: the types of the owner's last 100 tickets,
+# with counts, as the list the question offers — so the user picks from what
+# they actually file instead of reading every type on the board. A menu, never
+# a pick: nothing here fills <ISSUE_TYPE>. Sub-tasks (they need a parent) and
+# types missing from the create screen are left out. The counts move weekly,
+# so --check reports drift while the key is unset — a reminder to set it.
+recent_types() {
+	local types="$1" list
+	list="$(curl -sf -u "$LOGIN:$JIRA_API_TOKEN" -X POST -H 'Content-Type: application/json' \
+		"$SITE/rest/api/3/search/jql" \
+		-d "$(jq -n --arg p "$PROJECT" '{jql: "project = \"\($p)\" AND reporter = currentUser() ORDER BY created DESC", fields: ["issuetype"], maxResults: 100}')" \
+	 | jq -r --arg types "$types" '
+		($types | split("\n") | map(select(length > 0) | split("\t") | .[0])) as $ok
+		| [.issues[].fields.issuetype | select(.subtask | not) | select(.id as $i | $ok | index($i))]
+		| group_by(.id) | map({id: .[0].id, name: .[0].name, n: length}) | sort_by(-.n, .name)[]
+		| "| `\(.id)` | \(.name) | \(.n) |"' || true)"
+	if [ -n "$list" ]; then
+		printf 'Offer these when asking — the types of your last 100 tickets in `%s`:\n\n| Id | Name | Tickets |\n|---|---|---|\n%s\n\n' "$PROJECT" "$list"
+	else
+		printf 'No ticket of yours in `%s` to narrow it down — offer the full list above.\n\n' "$PROJECT"
+	fi
+}
+
 default_type() {
 	local types="$1" pick
 	if [ -z "$ISSUE_TYPE_DEFAULT" ]; then
 		printf '_No `issue_type_default` in `%s` — `<ISSUE_TYPE>` is unset. Ask the user for the type at every create, or add the key and re-run._\n\n' "$CFG"
+		recent_types "$types"
 		return
 	fi
 	pick="$(printf '%s\n' "$types" | awk -F'\t' -v t="$ISSUE_TYPE_DEFAULT" '$1==t || $2==t {print; exit}')"
 	if [ -z "$pick" ]; then
 		printf '_`issue_type_default: %s` in `%s` is not a type of %s — `<ISSUE_TYPE>` is unset. Ask the user._\n\n' "$ISSUE_TYPE_DEFAULT" "$CFG" "$PROJECT"
+		recent_types "$types"
 		return
 	fi
 	printf '| Placeholder | Value |\n|---|---|\n'
