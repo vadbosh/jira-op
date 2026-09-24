@@ -237,9 +237,10 @@ publish a Russian field and translate afterwards.
 
 ## Which issue type a create uses
 
-`<ISSUE_TYPE>` from the site file — the probe derives it from the tickets the
-owner actually files, or takes it from `JIRA_OP_ISSUE_TYPE`. That is the type,
-every time, unless the user names a different one.
+`<ISSUE_TYPE>` from the site file. The user sets it once per site, as
+`issue_type_default: <name or id>` in that site's jira-cli config; the probe
+checks it against the project and copies it over. Nothing is inferred. That is
+the type, every time, unless the user names a different one.
 
 - **Never pick a type by resemblance.** An alert does not make a `Monitoring
   Alert`, a defect does not make a `Bug`, because the project happens to offer
@@ -250,7 +251,8 @@ every time, unless the user names a different one.
 - **The type is the first line of the draft.** If it is not `<ISSUE_TYPE>`,
   the draft says which words of the user chose it.
 - **No `<ISSUE_TYPE>` in the site file** — ask. Do not fall back to the type of
-  a similar-looking ticket.
+  a similar-looking ticket, and do not count which type the user files most.
+  Offer to add `issue_type_default` to the config so the question stops.
 
 **Every value the user supplies needs a field on that type.** Story points,
 dates, sprint, priority: each maps to a field in `createmeta` for the create

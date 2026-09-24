@@ -150,33 +150,30 @@ TYPE_FOR_STATUSES="${JIRA_OP_STATUS_TYPE:-}"
 
 SAMPLE="$(jira issue list -p "$PROJECT" --order-by created --reverse --plain --no-headers --columns key --paginate 1 2>/dev/null | awk 'NR==1{print $1}')"
 
-# The type a create uses unless the user names another. Derived, never typed
-# into the skill: the type of most of the owner's last 100 tickets in the
-# project, counting only types the create screen offers and that need no
-# parent. JIRA_OP_ISSUE_TYPE (a name or an id) overrides it — for an account
-# that has filed nothing yet, or a team that files by a rule, not by habit.
-# Only the winner is printed: counts move every week, and --check would report
-# that as drift.
+# The type a create uses unless the user names another. Set by the user, once
+# per site, as a top-level key in that site's jira-cli config:
+#
+#   issue_type_default: Task      # a name or an id
+#
+# jira-cli ignores the key; `jira init` rewrites the file and drops it, and the
+# section below then says so. Nothing is inferred: no key, no default — the
+# skill asks.
+ISSUE_TYPE_DEFAULT="$(cfg_top issue_type_default)"
+
 default_type() {
-	local types="$1" pick src
-	if [ -n "${JIRA_OP_ISSUE_TYPE:-}" ]; then
-		pick="$(printf '%s\n' "$types" | awk -F'\t' -v t="$JIRA_OP_ISSUE_TYPE" '$1==t || $2==t {print; exit}')"
-		src='set by `JIRA_OP_ISSUE_TYPE`'
-		[ -n "$pick" ] || { printf '_`JIRA_OP_ISSUE_TYPE=%s` is not a type of %s — `<ISSUE_TYPE>` is unset; ask the user._\n\n' "$JIRA_OP_ISSUE_TYPE" "$PROJECT"; return; }
-	else
-		pick="$(curl -sf -u "$LOGIN:$JIRA_API_TOKEN" -X POST -H 'Content-Type: application/json' \
-			"$SITE/rest/api/3/search/jql" \
-			-d "$(jq -n --arg p "$PROJECT" '{jql: "project = \"\($p)\" AND reporter = currentUser() ORDER BY created DESC", fields: ["issuetype"], maxResults: 100}')" \
-		 | jq -r --arg types "$types" '
-			($types | split("\n") | map(select(length > 0) | split("\t") | .[0])) as $ok
-			| [.issues[].fields.issuetype | select(.subtask | not) | select(.id as $i | $ok | index($i)) | "\(.id)\t\(.name)"]
-			| group_by(.) | map({t: .[0], n: length}) | sort_by(-.n, .t) | .[0].t // empty' || true)"
-		src="the type of most of your last 100 tickets in \`$PROJECT\`"
-		[ -n "$pick" ] || { printf '_No ticket of yours in %s to derive it from — `<ISSUE_TYPE>` is unset. Ask the user, then set `JIRA_OP_ISSUE_TYPE` and re-run._\n\n' "$PROJECT"; return; }
+	local types="$1" pick
+	if [ -z "$ISSUE_TYPE_DEFAULT" ]; then
+		printf '_No `issue_type_default` in `%s` — `<ISSUE_TYPE>` is unset. Ask the user for the type at every create, or add the key and re-run._\n\n' "$CFG"
+		return
+	fi
+	pick="$(printf '%s\n' "$types" | awk -F'\t' -v t="$ISSUE_TYPE_DEFAULT" '$1==t || $2==t {print; exit}')"
+	if [ -z "$pick" ]; then
+		printf '_`issue_type_default: %s` in `%s` is not a type of %s — `<ISSUE_TYPE>` is unset. Ask the user._\n\n' "$ISSUE_TYPE_DEFAULT" "$CFG" "$PROJECT"
+		return
 	fi
 	printf '| Placeholder | Value |\n|---|---|\n'
 	printf '%s\n' "$pick" | awk -F'\t' '{printf "| `<ISSUE_TYPE>` | `%s` |\n| `<TYPE_ID>` | `%s` |\n", $2, $1}'
-	printf '\nSource: %s. Every create uses this type unless the user names another\none; a request that looks like a different kind of ticket does not.\n\n' "$src"
+	printf '\nSource: `issue_type_default` in `%s`. Every create uses this type unless\nthe user names another; a request that looks like a different kind of ticket\ndoes not.\n\n' "$CFG"
 }
 
 # Every list below is sorted explicitly. The API returns object keys and array
