@@ -235,6 +235,34 @@ publish a Russian field and translate afterwards.
   the one named `<SPRINT_PREFIX> N` whose date window contains today, then confirm
   the name with the user before adding.
 
+## Which issue type a create uses
+
+`<ISSUE_TYPE>` from the site file — the probe derives it from the tickets the
+owner actually files, or takes it from `JIRA_OP_ISSUE_TYPE`. That is the type,
+every time, unless the user names a different one.
+
+- **Never pick a type by resemblance.** An alert does not make a `Monitoring
+  Alert`, a defect does not make a `Bug`, because the project happens to offer
+  such a type. The site's list of types is a menu for the user, not a choice
+  for the assistant. Measured 2026-09-24: an alert-shaped request was filed
+  under the project's alert type, which had none of the fields the user then
+  supplied.
+- **The type is the first line of the draft.** If it is not `<ISSUE_TYPE>`,
+  the draft says which words of the user chose it.
+- **No `<ISSUE_TYPE>` in the site file** — ask. Do not fall back to the type of
+  a similar-looking ticket.
+
+**Every value the user supplies needs a field on that type.** Story points,
+dates, sprint, priority: each maps to a field in `createmeta` for the create
+screen, or in `editmeta` of an existing ticket of the same type for fields set
+after it. A value with no field is reported before the create, not discovered
+by a `400` after it.
+
+**"Jira cannot do X" is said with the failing response in hand**, never
+inferred from one endpoint. Example: `editmeta` offers no `issuetype` values,
+yet the type changes through a move — `references/create-task.md`, "Changing
+the issue type".
+
 ## Before any operation
 
 1. **What is the current state?** Fetch the issue first. Do not assume status,

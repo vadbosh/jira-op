@@ -39,6 +39,18 @@ curl -s -u "$E:$JIRA_API_TOKEN" "$SITE/rest/api/3/issue/createmeta/<PROJECT>/iss
 | `<ISSUE_TYPE>` | `Task` |
 | `<TYPE_ID>` | `10001` |
 
+The list above is every type the project offers; `<ISSUE_TYPE>` is the one you
+file by default. `site-probe.sh` takes it from your own last 100 tickets in the
+project, or from `JIRA_OP_ISSUE_TYPE` (a name or an id) when set — the way to
+fix it for an account with no history yet:
+
+```bash
+curl -s -u "$E:$JIRA_API_TOKEN" -X POST -H 'Content-Type: application/json' \
+  "$SITE/rest/api/3/search/jql" \
+  -d '{"jql":"project = <PROJECT> AND reporter = currentUser() ORDER BY created DESC","fields":["issuetype"],"maxResults":100}' \
+  | jq -r '[.issues[].fields.issuetype.name] | group_by(.) | map("\(length)\t\(.[0])") | .[]' | sort -rn
+```
+
 The type name is not portable between projects. A project may have no `Task`
 and no `Story` at all, and use something of its own instead.
 

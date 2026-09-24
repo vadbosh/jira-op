@@ -7,8 +7,10 @@ in the active sprint.
 ## Issue type
 
 `<ISSUE_TYPE>` (id `<TYPE_ID>`) — the type this project's tickets use, from
-`SITE.md`. Do not assume `Task` or `Story` exist: a project may have neither,
-and offer its own types instead. The list is per project:
+`SITE.md`, section "Default issue type". Another type only when the user names
+it; never because the request resembles one — see `SKILL.md`, "Which issue type
+a create uses". Do not assume `Task` or `Story` exist: a project may have
+neither, and offer its own types instead. The list is per project:
 
 ```bash
 curl -s -u "$E:$JIRA_API_TOKEN" "$SITE/rest/api/3/issue/createmeta/<PROJECT>/issuetypes" \
@@ -136,6 +138,11 @@ them guessed:
 `End Date` is asked every time, not offered as an afterthought — it is the
 field a team lead reads first when scanning a board, and it cannot be set on
 the create screen, so forgetting it means a second write later.
+
+Before drafting, match each answer to a field of the chosen type: `createmeta`
+for the create screen, `editmeta` of an existing ticket of that type for what
+is set afterwards. A type without a Story Points field cannot take the points
+the user just gave — say so now, not after the create.
 
 Do not ask about the epic; see "Fields that are not on the create screen"
 below. Everything written into the ticket is English — translate the user's
@@ -332,8 +339,8 @@ about the content of `Potential Risks` and `Acceptance Test`, and a type without
 those fields has nothing for them to describe.
 
 Where the field is required, its content line reads `present` or the ticket is
-not ready. On `Optimization Task`, the type this project files, that covers both
-risk and acceptance. `N/A` is banned either way (see "Values that are never
+not ready. On a type that requires both a risk and an acceptance field, that
+covers both lines. `N/A` is banned either way (see "Values that are never
 empty"): a genuinely low risk is written as what makes it low, "config-only
 change, no runtime path touched", and that sentence is the content, not a
 placeholder.
@@ -513,6 +520,46 @@ curl -s -o /dev/null -w '%{http_code}\n' -X PUT -u "$E:$JIRA_API_TOKEN" \
 ```
 
 `204` means applied. Format is `YYYY-MM-DD`.
+
+## Changing the issue type
+
+A ticket filed under the wrong type is **moved**, not re-created: the key, the
+watchers and the history stay, and no duplicate appears on a board that cannot
+delete. `editmeta` shows no `issuetype` values and `PUT` refuses the change —
+that is not the whole API. The move endpoint does it, verified 2026-09-24:
+
+```bash
+jq -n --arg r "$(cat /tmp/risks.txt)" --arg a "$(cat /tmp/acceptance.txt)" '
+  def adf($t): {type:"doc",version:1,content:[{type:"paragraph",content:[{type:"text",text:$t}]}]};
+  {sendBulkNotification: true,
+   targetToSourcesMapping: {"<PROJECT>,<TYPE_ID>": {
+     inferClassificationDefaults: true, inferFieldDefaults: false,
+     inferStatusDefaults: true, inferSubtaskTypeDefault: true,
+     issueIdsOrKeys: ["<KEY>"],
+     targetMandatoryFields: [{fields: {
+       <CF_RISKS>:      {retain: false, type: "adf", value: adf($r)},
+       <CF_ACCEPTANCE>: {retain: false, type: "adf", value: adf($a)}}}]}}}' > /tmp/move.json
+
+curl -s -X POST -u "$E:$JIRA_API_TOKEN" -H 'Content-Type: application/json' \
+  --data-binary @/tmp/move.json "$SITE/rest/api/3/bulk/issues/move"      # → {"taskId":"…"}
+curl -s -u "$E:$JIRA_API_TOKEN" "$SITE/rest/api/3/bulk/queue/<TASK_ID>" \
+  | jq -c '{status, failedAccessibleIssues}'                              # COMPLETE, {}
+```
+
+The key is `"<PROJECT>,<target type id>"`; `targetMandatoryFields` carries every
+field the target type requires and the source type lacks — the first attempt
+without them names each one. Three refusals, each seen once:
+
+- `Target mandatory fields mapping cannot be present when inferFieldDefaults is true`
+  — set `inferFieldDefaults: false` whenever fields are passed.
+- `You do not have the necessary permissions to disable bulk mail notifications`
+  — `sendBulkNotification: false` needs admin; keep it `true`.
+- `For issue <KEY> <field> is required` — a required field of the target type
+  missing from `targetMandatoryFields`.
+
+The move is a write like any other: show the target type and every field value
+first. Then fix the rest of the ticket for its new type — summary, description,
+the fields the old screen had no room for — in one `PUT`, and read it back.
 
 ## Reporter
 

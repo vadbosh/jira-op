@@ -270,6 +270,13 @@ anyone who prefers to fill them deliberately. `install.sh` does not copy it into
 the skill: sample values sitting next to real ones under identical headings get
 read as configuration.
 
+**The default issue type is derived, not configured.** The probe records the
+type of most of your own last 100 tickets in the project, and every create uses
+it unless you name another. `JIRA_OP_ISSUE_TYPE=<name or id>` overrides it — for
+an account with no tickets yet, or a team that files by rule. Nothing about a
+particular Jira is written into the skill, so another organisation gets its own
+default from its own history.
+
 **One file per site**: `SITE.md` for the default config, `SITE.<name>.md` for
 `~/.config/.jira/<name>.yml`. The skill picks by `JIRA_CONFIG_FILE`, so three
 Jira accounts mean three files and no editing when switching between them.
