@@ -171,6 +171,13 @@ comment already posted, `PUT` the same body to `…/comment/<id>`: editing it
 leaves one comment, where posting a second one notifies the watchers again.
 Read it back either way — `?expand=renderedBody` shows what readers see.
 
+**Wiki markup has its own trap: square brackets are a link, even inside
+`{{…}}`.** Measured on OP-805, 2026-09-24: `{{helm_release.<name>[0]}}`
+rendered as `helm_release.<name>` followed by a broken-link span —
+`<span class="error">&#91;0&#93;</span>` — and the `PUT` still returned `204`.
+Escape them as `\[0\]`. After any wiki write, search the rendered field for
+`class="error"`; an empty result is the check.
+
 **Anything that could ask a question hangs when stdin is not a terminal** —
 which is every command an assistant runs. `--no-input` does not cover it
 ([jira-cli#948](https://github.com/ankitpokhrel/jira-cli/issues/948)). Append

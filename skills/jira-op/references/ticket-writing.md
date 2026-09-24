@@ -225,7 +225,9 @@ is set.
 
 **Text with angle brackets goes through REST v2 in wiki markup**, comments
 included — `comment add --template` converts Markdown and drops `<…>` without
-an error. See `SKILL.md`, next to `jira issue comment add`.
+an error. In wiki markup escape square brackets — `\[0\]` — or they render as
+a broken link, even inside `{{…}}`. See `SKILL.md`, next to
+`jira issue comment add`.
 
 ## The verification comment
 
