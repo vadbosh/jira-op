@@ -91,7 +91,7 @@ team is what requires them. Values live in `SITE.md`.
 | Status | `<STATUS_IN_PROGRESS>` | `jira issue move` after create |
 | Assignee | the token owner | `-a$(jira me)` on create |
 | Reporter | the token owner | automatic; see below |
-| Sprint | `<SPRINT_ID>` — the active sprint of this board; confirm with the user | `jira sprint add` after create |
+| Sprint | the active sprint of this board, read live (step 3); confirm with the user | `jira sprint add` after create |
 | Story Points | **ask the user**, no default | `--custom story-points=<N>` |
 
 `Story Points` is itself a custom field and is not guaranteed to exist either.
@@ -132,7 +132,7 @@ them guessed:
 | Ask | Why it cannot be defaulted |
 |---|---|
 | **Story points** | the estimate is the author's, not the tool's |
-| **Which sprint** | the board shows other boards' sprints too, and the team may have started a new one since the site file was written |
+| **Which sprint** | the board shows other boards' sprints too; offer the one read live in step 3 and let the user confirm or name another |
 | **End Date** | a date nobody set is better than a date invented; `none` is a valid answer |
 
 `End Date` is asked every time, not offered as an afterthought — it is the
@@ -371,8 +371,9 @@ whichever sentence was rewritten, and the rewrite is the part worth reading.
 **3. Find the sprint id.** A board lists every active sprint that holds an
 issue matching its filter — including sprints created on other boards, left
 `active` for months. The team's own sprint is the one created on this board:
-`originBoardId` equals `<BOARD_ID>`. Re-read it live rather than trusting
-`<SPRINT_ID>` in the site file, since a new sprint may have started since:
+`originBoardId` equals `<BOARD_ID>`. It is read live, at this step, every time —
+the site file deliberately does not record it, because a sprint changes every
+few weeks and a stored one would go stale without a sign:
 
 ```bash
 set -a; . ~/.config/.jira/token.env; set +a

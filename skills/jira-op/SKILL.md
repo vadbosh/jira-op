@@ -231,11 +231,11 @@ publish a Russian field and translate afterwards.
 ## Two values that are always asked, never guessed
 
 - **Story Points** — no default. Ask.
-- **Sprint** — board <BOARD_ID> shows active sprints of other boards too. Take
-  `<SPRINT_ID>` from the site file: the active sprint whose `originBoardId` is
-  <BOARD_ID>. Never pick by name or by date window — the team's own sprint may
-  have an end date in the past, and a foreign one may cover today. Confirm the
-  name with the user before adding.
+- **Sprint** — read live every time, never from a file: the active sprint whose
+  `originBoardId` is <BOARD_ID> (`references/create-task.md`, step 3). Board
+  <BOARD_ID> shows active sprints of other boards too, so never pick by name or
+  by date window — the team's own sprint may have an end date in the past, and
+  a foreign one may cover today. Confirm the name with the user before adding.
 
 ## Which issue type a create uses
 

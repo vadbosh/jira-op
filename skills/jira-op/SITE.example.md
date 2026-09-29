@@ -134,9 +134,9 @@ all week is work, not silence.
 
 ## Sprints
 
-| Name used in the skill | Value |
-|---|---|
-| `<SPRINT_ID>` | `4321 (PROJ Sprint 12)` |
+No value is recorded here. A sprint changes every few weeks and this file is
+regenerated only when something breaks, so a stored sprint would go stale and
+still read as current. The skill reads it live at the moment of use.
 
 A board lists every active sprint holding an issue that matches its filter,
 sprints of other boards included. The team's sprint is the active one created
