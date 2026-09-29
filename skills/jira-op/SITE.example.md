@@ -136,17 +136,22 @@ all week is work, not silence.
 
 | Name used in the skill | Value |
 |---|---|
-| `<SPRINT_PREFIX>` | `PROJ Sprint` |
+| `<SPRINT_ID>` | `4321 (PROJ Sprint 12)` |
 
-Boards accumulate sprints left in state `active` by other teams, so the weekly
-report picks the sprint whose name starts with this prefix **and** whose date
-window contains today:
+A board lists every active sprint holding an issue that matches its filter,
+sprints of other boards included. The team's sprint is the active one created
+on this board — `originBoardId` equals `<BOARD_ID>` — whatever its name and
+whatever its dates say:
 
 ```bash
 curl -s -u "$E:$JIRA_API_TOKEN" \
   "$SITE/rest/agile/1.0/board/<BOARD_ID>/sprint?state=active" \
-  | jq -r '.values[] | "\(.id)\t\(.name)\t\(.startDate[:10])..\(.endDate[:10])"'
+  | jq -r '.values[] | select(.originBoardId == <BOARD_ID>)
+      | "\(.id)\t\(.name)\t\(.startDate[:10])..\(.endDate[:10])"'
 ```
+
+Not by date window: a team may keep working in a sprint whose end date has
+passed, and another board's sprint may cover today.
 
 ## Permissions
 

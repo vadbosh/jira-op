@@ -23,7 +23,7 @@ The token goes first: `jira init` authenticates while it asks its questions.
 | You say | What happens |
 |---|---|
 | `show my open tickets` | list, nothing else |
-| `what's in the active sprint` | the sprint that actually contains today |
+| `what's in the active sprint` | the active sprint created on your board, whatever its dates say |
 | `investigate PROJ-123` | read-only: facts, hypotheses, what could not be checked |
 | `file a ticket: <what you did>` | draft first — nothing is created until you say yes |
 | `weekly report` | writes a `.txt` into the project directory, answers with its path |

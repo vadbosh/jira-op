@@ -284,10 +284,21 @@ EOF
 
 	printf '## Sprints\n\n'
 	if [ -n "$BOARD_ID" ]; then
-		printf 'Sprints in state `active` on board `%s`:\n\n```\n' "$BOARD_ID"
-		api "/rest/agile/1.0/board/$BOARD_ID/sprint?state=active" \
-		 | jq -r '.values | sort_by(.id)[] | "\(.id)\t\(.name)\t\(.startDate[:10] // "-")..\(.endDate[:10] // "-")"' || true
-		printf '```\n\nBoards keep stale sprints in state `active`, so pick by name prefix **and**\ndate window. `<SPRINT_PREFIX>` is the common prefix of the rows above that\nbelong to this team.\n\n'
+		# A board lists every active sprint that holds an issue matching its
+		# filter, including sprints of other boards. Neither the name nor the
+		# dates tell the team's own sprint apart: on the board this was written
+		# against, the only sprint whose window contained today belonged to
+		# another board, and the team's own sprint had an end date three weeks
+		# in the past while still in use. originBoardId is the one field that
+		# says where a sprint was created.
+		sprints=$(api "/rest/agile/1.0/board/$BOARD_ID/sprint?state=active" || true)
+		printf 'Sprints in state `active` visible on board `%s`:\n\n```\n' "$BOARD_ID"
+		printf '%s' "$sprints" | jq -r --arg b "$BOARD_ID" '.values | sort_by(.id)[]
+			| "\(.id)\t\(.name)\toriginBoard=\(.originBoardId)\t\(.startDate[:10] // "-")..\(.endDate[:10] // "-")"
+			  + (if (.originBoardId | tostring) == $b then "\t<- this board" else "" end)' || true
+		own=$(printf '%s' "$sprints" | jq -r --arg b "$BOARD_ID" '[.values[] | select((.originBoardId | tostring) == $b) | "\(.id) (\(.name))"] | join(", ")' 2>/dev/null)
+		printf '```\n\n| Placeholder | Value |\n|---|---|\n| `<SPRINT_ID>` | `%s` |\n\n' "${own:-none on this board}"
+		printf 'The current sprint is the active sprint created on this board (`originBoardId` equals `<BOARD_ID>`). Do not pick by name or by date window: the board also shows sprints of other boards, and a team may keep working in a sprint whose end date has passed. More than one such sprint, or none, means asking the user.\n\n'
 	else
 		printf '_No board in the config — `jira sprint` commands will not work here._\n\n'
 	fi

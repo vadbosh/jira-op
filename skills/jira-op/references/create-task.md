@@ -91,7 +91,7 @@ team is what requires them. Values live in `SITE.md`.
 | Status | `<STATUS_IN_PROGRESS>` | `jira issue move` after create |
 | Assignee | the token owner | `-a$(jira me)` on create |
 | Reporter | the token owner | automatic; see below |
-| Sprint | current `<SPRINT_PREFIX> N` — confirm with the user | `jira sprint add` after create |
+| Sprint | `<SPRINT_ID>` — the active sprint of this board; confirm with the user | `jira sprint add` after create |
 | Story Points | **ask the user**, no default | `--custom story-points=<N>` |
 
 `Story Points` is itself a custom field and is not guaranteed to exist either.
@@ -132,7 +132,7 @@ them guessed:
 | Ask | Why it cannot be defaulted |
 |---|---|
 | **Story points** | the estimate is the author's, not the tool's |
-| **Which sprint** | boards keep stale sprints `active` and the current one may not be open yet |
+| **Which sprint** | the board shows other boards' sprints too, and the team may have started a new one since the site file was written |
 | **End Date** | a date nobody set is better than a date invented; `none` is a valid answer |
 
 `End Date` is asked every time, not offered as an afterthought — it is the
@@ -368,25 +368,30 @@ test the recipe.
 A clone of an existing ticket is not an exception. "Same as PROJ-123" hides
 whichever sentence was rewritten, and the rewrite is the part worth reading.
 
-**3. Find the sprint id.** A board accumulates sprints left in state `active`
-by other teams, sometimes years after they ended, so `--state active` alone
-picks the wrong one. Take the sprint whose name starts with `<SPRINT_PREFIX>`
-**and** whose date window contains today:
+**3. Find the sprint id.** A board lists every active sprint that holds an
+issue matching its filter — including sprints created on other boards, left
+`active` for months. The team's own sprint is the one created on this board:
+`originBoardId` equals `<BOARD_ID>`. Re-read it live rather than trusting
+`<SPRINT_ID>` in the site file, since a new sprint may have started since:
 
 ```bash
 set -a; . ~/.config/.jira/token.env; set +a
-TODAY=$(date -I); E=$(jira me); SITE=<SITE>
+E=$(jira me); SITE=<SITE>
 curl -s -u "$E:$JIRA_API_TOKEN" \
   "$SITE/rest/agile/1.0/board/<BOARD_ID>/sprint?state=active" \
-| jq -r --arg d "$TODAY" '.values[]
-    | select(.name | startswith("<SPRINT_PREFIX>"))
-    | select(.startDate[:10] <= $d and .endDate[:10] >= $d)
+| jq -r '.values[] | select(.originBoardId == <BOARD_ID>)
     | "\(.id)\t\(.name)\t\(.startDate[:10])..\(.endDate[:10])"'
 ```
 
-Empty result means no sprint is currently open — it happens on the day one
-window closes and the next has not been started. Ask; do not drop the ticket
-into a stale sprint, and do not silently create it outside every sprint.
+**Do not filter by date window or by name.** Measured on the board this was
+written against: the only active sprint whose window contained today belonged
+to another board, and the team's own sprint — the one every ticket of the past
+month was in — had an end date three weeks in the past. A date filter picked
+the foreign sprint; a name-prefix filter plus the date returned nothing. Teams
+do not keep sprint end dates current, and nothing forces them to.
+
+One row is the answer; show it and confirm. None or several — ask, and do not
+silently create the ticket outside every sprint.
 
 **4. Create.** One request, every required field in it:
 

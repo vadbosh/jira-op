@@ -100,8 +100,11 @@ jira issue list -q"project = <PROJECT> AND assignee = currentUser() AND status W
 jira issue list -q'project = <PROJECT> AND assignee = currentUser() AND status IN (<STATUS_ACTIVE>)' \
   --plain --columns key,status,summary --paginate 15
 
-# the sprint the week belongs to
-jira sprint list --state active --plain
+# the sprint the week belongs to: the active sprint created on this board
+# (other boards' sprints show up in `jira sprint list --state active` too)
+curl -s -u "$(jira me):$JIRA_API_TOKEN" \
+  "<SITE>/rest/agile/1.0/board/<BOARD_ID>/sprint?state=active" \
+  | jq -r '.values[] | select(.originBoardId == <BOARD_ID>) | .name'
 ```
 
 Constraints on these queries:

@@ -231,9 +231,11 @@ publish a Russian field and translate afterwards.
 ## Two values that are always asked, never guessed
 
 - **Story Points** — no default. Ask.
-- **Sprint** — board <BOARD_ID> shows several stale sprints in state `active`. Take
-  the one named `<SPRINT_PREFIX> N` whose date window contains today, then confirm
-  the name with the user before adding.
+- **Sprint** — board <BOARD_ID> shows active sprints of other boards too. Take
+  `<SPRINT_ID>` from the site file: the active sprint whose `originBoardId` is
+  <BOARD_ID>. Never pick by name or by date window — the team's own sprint may
+  have an end date in the past, and a foreign one may cover today. Confirm the
+  name with the user before adding.
 
 ## Which issue type a create uses
 
