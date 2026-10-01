@@ -287,6 +287,16 @@ the issue type".
   and every field the assistant filled in, including risks and acceptance
   criteria — then wait. A field nobody read is a field nobody agreed to, and a
   ticket cloned from another one hides its rewrite behind "same as PROJ-123".
+- **Never write before a typed «да».** Every write — create, edit, transition,
+  sprint, comment — is preceded by a message that shows the draft (or the
+  before/after of the change) and ends with the line `Утверждаешь? (да/нет)`
+  (`Approve? (yes/no)` in an English session). The turn stops there. Answers to
+  the field questions — story points, sprint, End Date, status — are asked
+  *before* the draft, in their own step, and are never approval; neither is an
+  option picked in a question dialog. `jira-write-guard`, the PreToolUse hook
+  `install.sh` wires, refuses any write that skips this. Measured 2026-10-01: a
+  ticket was filed right after the four field questions were answered, with the
+  draft unread behind the dialog — and on this site a ticket cannot be deleted.
 - **Never transition without reading the current status first.** `To Do` →
   `Done` can fail when the workflow requires an intermediate state.
 - **Never use `--no-input` without every mandatory field.** The <PROJECT> create

@@ -1,0 +1,220 @@
+#!/usr/bin/env python3
+"""jira-write-guard — refuse a Jira write that the human has not approved.
+
+PreToolUse hook for Bash (Claude Code, Codex) and the backend of the Opencode
+plugin. It lets a command through unless the command WRITES to Jira; a write
+passes only when both hold:
+
+  1. the last message the human TYPED is an approval — "да", "утверждаю",
+     "создавай", "согласен", "yes", "approve" — the whole message, nothing else;
+  2. the assistant text written since the human message before it contains the
+     marker line `Утверждаешь? (да/нет)` (or `Approve? (yes/no)`), i.e. a draft
+     was shown and the turn ended on the question.
+
+An answer picked in a question dialog (AskUserQuestion) is a tool result, not a
+typed message, and never counts: on 2026-10-01 a ticket was created right after
+the four field questions were answered, while the draft sat unread behind the
+dialog. Every write of the same turn after one "да" passes — create, sprint,
+end date, transition, comment.
+
+Input (stdin, JSON): the hook payload. `tool_input.command` is the command;
+the conversation comes from `transcript_path` (Claude Code or Codex JSONL) or,
+from the Opencode plugin, from `messages`: [{"role": "user"|"assistant", "text": …}].
+
+Exit 0 — allowed. Exit 2 — refused; the reason is on stderr, which every
+assistant shows to the model. A write with no readable conversation is refused:
+the guard does not wave writes through blind.
+"""
+import json
+import re
+import shlex
+import sys
+
+APPROVALS = {"да", "утверждаю", "создавай", "согласен", "yes", "approve", "approved"}
+MARKERS = ("утверждаешь? (да/нет)", "approve? (yes/no)")
+
+REASON = (
+    "jira-write-guard: this command writes to Jira, and the human has not approved it.\n"
+    "Show the full draft (or the before/after of the change), end the message with the line\n"
+    "    Утверждаешь? (да/нет)\n"
+    "and stop. Run the write only after the human types «да». An answer picked in a question\n"
+    "dialog does not count, and neither do answers about story points, sprint or dates."
+)
+
+# --- what counts as a Jira write --------------------------------------------
+
+JIRA_WRITE = [
+    ("issue", {"create", "edit", "move", "transition", "assign", "link", "unlink",
+               "delete", "clone", "watch"}),
+    ("sprint", {"add"}),
+    ("epic", {"add", "remove", "create"}),
+]
+WRITE_FLAGS = {"-d", "--data", "--data-raw", "--data-binary", "--data-urlencode",
+               "--json", "-F", "--form", "-T", "--upload-file"}
+WRAPPERS = {"rtk", "timeout", "nohup", "time", "command", "env", "exec", "sudo"}
+
+
+def _segments(cmd):
+    """Split a shell command into simple commands at ; && || | and newlines."""
+    out, cur = [], []
+    try:
+        lex = shlex.shlex(cmd, posix=True, punctuation_chars=";&|()\n")
+        lex.whitespace = " \t\r"
+        lex.whitespace_split = True
+        tokens = list(lex)
+    except ValueError:
+        tokens = cmd.split()
+    for tok in tokens:
+        if tok and set(tok) <= set(";&|()\n"):
+            if cur:
+                out.append(cur)
+            cur = []
+        else:
+            cur.append(tok)
+    if cur:
+        out.append(cur)
+    return out
+
+
+def _strip_prefix(words):
+    """Drop VAR=value assignments and wrappers such as `rtk`, `timeout 15`."""
+    i = 0
+    while i < len(words):
+        w = words[i]
+        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", w):
+            i += 1
+        elif w in WRAPPERS:
+            i += 1
+            if w == "timeout" and i < len(words) and re.match(r"^\d", words[i]):
+                i += 1
+        else:
+            break
+    return words[i:]
+
+
+def is_jira_write(cmd):
+    for seg in _segments(cmd):
+        words = _strip_prefix(seg)
+        if not words:
+            continue
+        prog = words[0].rsplit("/", 1)[-1]
+        rest = [w for w in words[1:] if not w.startswith("-")]
+        if prog == "jira" and len(rest) >= 2:
+            for noun, verbs in JIRA_WRITE:
+                if rest[0] == noun and rest[1] in verbs:
+                    return True
+            if rest[0] == "issue" and rest[1] in ("comment", "worklog") and \
+               len(rest) >= 3 and rest[2] == "add":
+                return True
+        if prog in ("curl", "http", "https", "xh", "wget"):
+            if not any(re.search(r"atlassian\.net/rest/", w) for w in words):
+                continue
+            joined = " ".join(words)
+            # -X POST, -XPOST, glued short flags (-sXDELETE), --request=PUT
+            if re.search(r"(?:^|\s)(?:-[A-Za-z]*X|--request)[\s=]*(POST|PUT|PATCH|DELETE)\b",
+                         joined, re.I):
+                return True
+            # A body means a write: -d/--data*/--json/-F/-T, also glued (-d{...}, --data=@f).
+            if any(w in WRITE_FLAGS or w.startswith("--data") or
+                   (w.startswith("-d") and not w.startswith("--")) for w in words):
+                return True
+            if prog in ("http", "https", "xh") and len(words) > 1 and \
+               words[1].upper() in ("POST", "PUT", "PATCH", "DELETE"):
+                return True
+    return False
+
+
+# --- reading the conversation -----------------------------------------------
+
+SKIP_PREFIXES = ("<command-", "<local-command", "<system-reminder", "# agents.md instructions",
+                 "<environment_context", "<user_instructions", "[request interrupted")
+
+
+def _text_of(content, kinds):
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "\n".join(c.get("text", "") for c in content
+                         if isinstance(c, dict) and c.get("type") in kinds)
+    return ""
+
+
+def _from_transcript(path):
+    """[(role, text)] for typed human messages and assistant text, in order."""
+    events = []
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            try:
+                e = json.loads(line)
+            except ValueError:
+                continue
+            # Claude Code
+            if e.get("type") in ("user", "assistant") and isinstance(e.get("message"), dict):
+                msg = e["message"]
+                if e["type"] == "user":
+                    content = msg.get("content")
+                    if e.get("isMeta") or (isinstance(content, list) and
+                                           any(isinstance(c, dict) and c.get("type") == "tool_result"
+                                               for c in content)):
+                        continue  # tool results, dialog answers, injected text
+                    events.append(("user", _text_of(content, ("text",))))
+                else:
+                    t = _text_of(msg.get("content"), ("text",))
+                    if t:
+                        events.append(("assistant", t))
+                continue
+            # Codex rollout
+            p = e.get("payload") if e.get("type") == "response_item" else None
+            if isinstance(p, dict) and p.get("type") == "message":
+                if p.get("role") == "user":
+                    events.append(("user", _text_of(p.get("content"), ("input_text",))))
+                elif p.get("role") == "assistant":
+                    t = _text_of(p.get("content"), ("output_text",))
+                    if t:
+                        events.append(("assistant", t))
+    return events
+
+
+def _norm(text):
+    return re.sub(r"[\s.!,;:)(]+$", "", text.strip().lower()).strip()
+
+
+def approved(events):
+    humans = [i for i, (r, t) in enumerate(events)
+              if r == "user" and t.strip() and not t.strip().lower().startswith(SKIP_PREFIXES)]
+    if not humans:
+        return False
+    last = humans[-1]
+    if _norm(events[last][1]) not in APPROVALS:
+        return False
+    prev = humans[-2] if len(humans) > 1 else -1
+    shown = " ".join(t for r, t in events[prev + 1:last] if r == "assistant").lower()
+    return any(m in shown for m in MARKERS)
+
+
+def main():
+    try:
+        payload = json.loads(sys.stdin.read() or "{}")
+    except ValueError:
+        return 0  # not a hook payload: nothing to judge
+    cmd = (payload.get("tool_input") or {}).get("command")
+    if not isinstance(cmd, str) or not is_jira_write(cmd):
+        return 0
+    try:
+        if isinstance(payload.get("messages"), list):
+            events = [(m.get("role"), m.get("text") or "") for m in payload["messages"]
+                      if isinstance(m, dict)]
+        elif payload.get("transcript_path"):
+            events = _from_transcript(payload["transcript_path"])
+        else:
+            events = []
+    except OSError:
+        events = []
+    if approved(events):
+        return 0
+    print(REASON, file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

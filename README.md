@@ -80,9 +80,18 @@ git clone <this-repo> jira-op
 cd jira-op
 ./install.sh              # into every assistant found under $HOME
 ./install.sh --dry-run    # print what would happen, change nothing
+./install.sh --no-hooks   # the skill only, without the guard and the rule
 ```
 
 Prerequisites: `jira` (jira-cli 1.7.0 or later), `jq`, `curl`.
+
+Besides the skill, `install.sh` wires two things into each assistant it finds.
+**jira-write-guard** is a PreToolUse hook (a plugin in Opencode) that refuses a
+Jira write unless the last message the human typed is «да» and the reply before
+it ended with `Утверждаешь? (да/нет)`; an answer picked in a question dialog
+does not count. The **jira-trigger** rule makes the assistant load this skill
+for every Jira task instead of working from memory. That part needs `python3`;
+its tests are `tests/test_write_guard.sh`.
 
 `install.sh` is a bash script — **Linux and macOS**, or WSL / Git Bash on
 Windows. There is no PowerShell installer; on native Windows copy

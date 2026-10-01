@@ -1,0 +1,19 @@
+# jira-op Auto-Trigger
+
+Any Jira work — "jira", "тикет", "таска", "задача в Jira", "оформи в Jira", a sprint, a
+comment, a transition, or an issue key like `OP-123` → invoke the `jira-op` skill BEFORE
+the first Jira command, **every time**, even if it was loaded earlier in the session.
+
+**MANDATORY — no discretion.** Working from memory of an earlier load is how a ticket got
+filed without approval on 2026-10-01: the draft and the field questions went out in one
+message, and the answers to the questions were taken as consent to publish.
+
+A write to Jira — create, edit, transition, sprint, comment — happens only after:
+
+1. the full draft (or the before/after of the change) is printed,
+2. the message ends with the line `Утверждаешь? (да/нет)` and the turn stops there,
+3. the human types «да».
+
+Answers in a question dialog — story points, sprint, dates — are not approval.
+`jira-write-guard` (PreToolUse hook, installed by jira-op) refuses any write that skips
+this; its refusal means: print the draft with the question and wait.

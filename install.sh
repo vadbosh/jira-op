@@ -8,10 +8,15 @@
 #   ./install.sh                  install into every assistant detected
 #   ./install.sh --dry-run        print what would happen, change nothing
 #   ./install.sh --skills-dir D   install into D instead of auto-detecting
+#   ./install.sh --no-hooks       skip jira-write-guard and the jira-trigger rule
 #
 # Idempotent. A destination that differs from the source is copied to
 # <dir>.bak.<timestamp> first — a local edit is the one thing git cannot give
 # back. Nothing outside $HOME is touched, and no credential is read or written.
+#
+# Besides the skill it wires jira-write-guard (a PreToolUse hook that refuses a
+# Jira write the human has not approved) and the jira-trigger rule into each
+# assistant found — see lib/wire.py. Needs python3 for that part.
 
 set -euo pipefail
 
@@ -25,12 +30,14 @@ BACKUP_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/jira-op-backups"
 
 DRY_RUN=0
 SKILLS_DIR=""
+NO_HOOKS=0
 
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--dry-run)    DRY_RUN=1 ;;
 		--skills-dir) shift; SKILLS_DIR="${1:?--skills-dir needs a path}" ;;
-		-h|--help)    sed -n '2,14p' "${BASH_SOURCE[0]}"; exit 0 ;;
+		--no-hooks)   NO_HOOKS=1 ;;
+		-h|--help)    sed -n '2,19p' "${BASH_SOURCE[0]}"; exit 0 ;;
 		*)            echo "unknown argument: $1" >&2; exit 2 ;;
 	esac
 	shift
@@ -143,8 +150,50 @@ fi
 FIRST="${targets[0]}/jira-op"
 if [ "$DRY_RUN" = 0 ]; then
 	for dir in "${targets[@]}"; do
-		chmod 755 "$dir/jira-op/scripts/"*.sh 2>/dev/null || true
+		chmod 755 "$dir/jira-op/scripts/"*.sh "$dir/jira-op/scripts/jira-write-guard" 2>/dev/null || true
 	done
+fi
+
+# jira-write-guard and the jira-trigger rule. Not with --skills-dir: a custom
+# directory says nothing about which assistant reads it, so there is no
+# configuration to wire.
+unwired=""
+if [ -z "$SKILLS_DIR" ] && [ "$NO_HOOKS" = 0 ]; then
+	printf '\njira-write-guard and the jira-trigger rule\n'
+	if ! command -v python3 >/dev/null 2>&1; then
+		printf '  python3 not found — not wired; Jira writes are NOT guarded\n'
+		unwired="all"
+	else
+		for ide in claude codex opencode; do
+			set +e
+			if [ "$DRY_RUN" = 1 ]; then
+				python3 "$SRC/lib/wire.py" "$ide" --src "$SRC" --dry-run
+			else
+				python3 "$SRC/lib/wire.py" "$ide" --src "$SRC"
+			fi
+			rc=$?
+			set -e
+			case "$rc" in
+				0) if [ "$DRY_RUN" = 1 ]; then printf '  %s: would be wired as above\n' "$ide"
+				   else printf '  %s: wired\n' "$ide"; fi ;;
+				3) ;;  # assistant not installed
+				*) printf '  %s: NOT wired — see the message above\n' "$ide"; unwired="$unwired $ide" ;;
+			esac
+		done
+	fi
+	if [ "$DRY_RUN" = 0 ] && [ -z "$unwired" ]; then
+		# The guard must refuse an unapproved write and let a read through.
+		g="${targets[0]}/jira-op/scripts/jira-write-guard"
+		w=$(printf '%s' '{"tool_input":{"command":"jira issue create -pX"},"transcript_path":null}' | "$g" 2>/dev/null; echo $?)
+		r=$(printf '%s' '{"tool_input":{"command":"jira issue view X-1"},"transcript_path":null}' | "$g" 2>/dev/null; echo $?)
+		if [ "$w" = 2 ] && [ "$r" = 0 ]; then
+			printf '  ok — the guard refuses an unapproved write and allows a read\n'
+			printf '  restart the assistants: hooks and plugins are read at start-up\n'
+		else
+			printf '  the guard did not behave as expected (write=%s read=%s)\n' "$w" "$r"
+			unwired="probe"
+		fi
+	fi
 fi
 
 cat <<EOF
