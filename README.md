@@ -69,6 +69,7 @@ site:
 | `references/commands.md` | jira-cli reference, with the flags that do not exist |
 | `SITE.example.md` | documents every site value with the command behind it — repository only, never installed |
 | `scripts/site-probe.sh` | generates that file from the live API — one per Jira site |
+| `scripts/week-delta.sh` | prints, in full, everything the weekly window added to the tickets — read-only |
 
 `investigate.md` and `ticket-writing.md` carry no project identifiers and work
 against any Jira site as they are.

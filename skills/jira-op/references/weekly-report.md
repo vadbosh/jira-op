@@ -171,6 +171,24 @@ For a ticket that runs across several weeks, the week's delta comes from its
 changelog — see section 3c. Do not build the report on the previous report
 file: it is an ordinary file in a working directory and may not be there.
 
+**The delta of every ticket comes from one command**, which runs the listings
+above and the reads of section 3c for the whole window:
+
+```bash
+scripts/week-delta.sh "$WEEK_START" "$WEEK_END"         # or append keys to limit it
+```
+
+It prints, per ticket and in full, what carries a date inside the window: the
+one-line changes, the text added to the description and custom fields, every
+comment, the `Update <date>:` lines, and the whole description of a ticket
+created inside the window. **Read all of it before writing a line, and never
+shorten it** — no `head`, no character limit, no own summarising script.
+Measured 2026-10-02: a run that cut comments at 1500 characters and
+descriptions at 1800 lost three risks, two decisions and the numbers behind
+two outcomes, all of them written in the tickets. Risks, trade-offs and
+decisions sit at the end of a description or a comment, exactly where a cut
+falls.
+
 For anything that needs the reasoning, not the title, read the ticket:
 
 ```bash

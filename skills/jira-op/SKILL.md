@@ -317,9 +317,10 @@ the issue type".
   *before* the draft, in their own step, and are never approval; neither is an
   option picked in a question dialog. `jira-write-guard`, the PreToolUse hook
   `install.sh` wires, refuses a write that skips this when it goes through
-  `jira`, `curl`, `wget`, `httpie` or `xh`. A write from a script file or from
-  another language (`python3 -c`, `node -e`) is not seen, so never route one
-  that way. A delete or a sprint close passes only when the draft names every
+  `jira`, `curl`, `wget`, `httpie` or `xh`. **Blind spot:** a write from a
+  script file or from another language (`python3 -c`, `node -e`) is invisible
+  to the guard and passes it unchecked — the guard does NOT refuse it — so
+  never route a write that way. A delete or a sprint close passes only when the draft names every
   issue key or sprint id, and the command names them literally — no
   variables or loops. Measured 2026-10-01: a
   ticket was filed right after the four field questions were answered, with the
