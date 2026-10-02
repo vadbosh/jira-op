@@ -89,7 +89,11 @@ Besides the skill, `install.sh` wires two things into each assistant it finds.
 **jira-write-guard** is a PreToolUse hook (a plugin in Opencode) that refuses a
 Jira write unless the last message the human typed is «да» and the reply before
 it ended with `Утверждаешь? (да/нет)`; an answer picked in a question dialog
-does not count. The **jira-trigger** rule makes the assistant load this skill
+does not count. It sees writes made with `jira` and with `curl`, `wget`,
+`httpie` or `xh` aimed at the Jira REST API, also inside loops, `$( )` and
+`sh -c`; a `jira` command it does not know as a read counts as a write. It does
+not see a write made from a script file or another language (`python3 -c`,
+`node -e`). The **jira-trigger** rule makes the assistant load this skill
 for every Jira task instead of working from memory. That part needs `python3`;
 its tests are `tests/test_write_guard.sh`.
 

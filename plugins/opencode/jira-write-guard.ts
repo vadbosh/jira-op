@@ -10,12 +10,25 @@ import type { Plugin } from "@opencode-ai/plugin"
 // parts are left out, so an answer picked in a question dialog is never an
 // approval — the case the guard exists for.
 
+// Cheap pre-filter: only commands that mention Jira can be Jira writes. The same
+// pattern as MENTION in the guard; tests/test_write_guard.sh checks they agree.
+const MENTION = /\bjira\b|\/rest\/(?:api|agile)\/|atlassian\.(?:net|com)/i
+
 export const JiraWriteGuardPlugin: Plugin = async ({ $, client }) => {
   const guard = `${process.env.HOME ?? ""}/.config/opencode/skills/jira-op/scripts/jira-write-guard`
   const probe = await $`test -x ${guard}`.quiet().nothrow()
   if (probe.exitCode !== 0) {
-    console.warn(`[jira-write-guard] ${guard} not found — plugin disabled; run jira-op/install.sh`)
-    return {}
+    // No guard, no way to tell a read from a write: refuse anything that names Jira.
+    console.warn(`[jira-write-guard] ${guard} not found — Jira commands are refused; run jira-op/install.sh`)
+    return {
+      "tool.execute.before": async (input, output) => {
+        if (String(input?.tool ?? "").toLowerCase() !== "bash") return
+        const command = (output?.args as Record<string, unknown> | undefined)?.command
+        if (typeof command === "string" && MENTION.test(command)) {
+          throw new Error(`jira-write-guard: ${guard} is missing; run jira-op/install.sh.`)
+        }
+      },
+    }
   }
 
   return {
@@ -23,9 +36,7 @@ export const JiraWriteGuardPlugin: Plugin = async ({ $, client }) => {
       if (String(input?.tool ?? "").toLowerCase() !== "bash") return
       const command = (output?.args as Record<string, unknown> | undefined)?.command
       if (typeof command !== "string" || !command) return
-
-      // Cheap pre-filter: only commands that mention Jira can be Jira writes.
-      if (!/\bjira\b|atlassian\.net\/rest\//.test(command)) return
+      if (!MENTION.test(command)) return
 
       let messages: { role: string; text: string }[] = []
       try {
@@ -42,10 +53,13 @@ export const JiraWriteGuardPlugin: Plugin = async ({ $, client }) => {
         messages = [] // unreadable conversation: the guard refuses a write
       }
 
+      // The payload goes on stdin: as an argument, a long session hits the
+      // 128 KiB limit of one argv string and the guard never runs.
       const payload = JSON.stringify({ tool_name: "bash", tool_input: { command }, messages })
-      const res = await $`printf %s ${payload} | ${guard}`.quiet().nothrow()
-      if (res.exitCode === 2) {
-        throw new Error(String(res.stderr).trim() || "jira-write-guard: Jira write not approved.")
+      const res = await $`${guard} < ${new Response(payload)}`.quiet().nothrow()
+      // 0 is the only "allowed": a crash, a missing python3 or an exec failure refuses.
+      if (res.exitCode !== 0) {
+        throw new Error(String(res.stderr).trim() || `jira-write-guard: refused (exit ${res.exitCode}).`)
       }
     },
   }

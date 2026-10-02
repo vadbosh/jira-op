@@ -15,5 +15,7 @@ A write to Jira — create, edit, transition, sprint, comment — happens only a
 3. the human types «да».
 
 Answers in a question dialog — story points, sprint, dates — are not approval.
-`jira-write-guard` (PreToolUse hook, installed by jira-op) refuses any write that skips
-this; its refusal means: print the draft with the question and wait.
+`jira-write-guard` (PreToolUse hook, installed by jira-op) refuses a write that skips this
+when it goes through `jira`, `curl`, `wget`, `httpie` or `xh`; its refusal means: print the
+draft with the question and wait. It does not see a write from a script file or another
+language (`python3 -c`, `node -e`), so never route one that way.

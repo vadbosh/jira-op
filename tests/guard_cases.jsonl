@@ -1,0 +1,114 @@
+{"want": 2, "name": "skill create, multi-line, $SITE", "cmd": "curl -s -X POST -u \"$E:$JIRA_API_TOKEN\" -H 'Content-Type: application/json' \\\n  --data-binary @/tmp/op_create.json \"$SITE/rest/api/2/issue\" \\\n  | jq -c '{key, errors, errorMessages}'"}
+{"want": 2, "name": "skill create, one line, $SITE", "cmd": "curl -s -X POST -u \"$E:$T\" --data-binary @/tmp/op.json \"$SITE/rest/api/2/issue\""}
+{"want": 2, "name": "skill end date PUT, $S", "cmd": "curl -s -o /dev/null -w '%{http_code}\\n' -X PUT -u \"$E:$JIRA_API_TOKEN\" \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"fields\":{\"customfield_1\":\"2026-09-30\"}}' \\\n  \"$S/rest/api/2/issue/PROJ-123\""}
+{"want": 2, "name": "multi-line, literal URL", "cmd": "curl -s -X POST -u \"$E:$T\" \\\n  --data-binary @/tmp/op.json https://x.atlassian.net/rest/api/2/issue"}
+{"want": 2, "name": "one line, literal URL (control)", "cmd": "curl -s -X POST -u \"$E:$T\" --data-binary @/tmp/op.json https://x.atlassian.net/rest/api/2/issue"}
+{"want": 2, "name": "-c before noun (SKILL.md multi-site)", "cmd": "jira -c ~/.config/.jira/acme.yml issue create -pOP -s x"}
+{"want": 2, "name": "--config before noun", "cmd": "jira --config ~/.config/.jira/acme.yml issue move OP-1 Done"}
+{"want": 2, "name": "-p VALUE before noun", "cmd": "jira -p OP issue create -s x"}
+{"want": 2, "name": "JIRA_CONFIG_FILE= prefix (control)", "cmd": "JIRA_CONFIG_FILE=~/.config/.jira/acme.yml jira issue create -pOP"}
+{"want": 2, "name": "alias issue mv", "cmd": "jira issue mv OP-1 Done"}
+{"want": 2, "name": "alias issue update", "cmd": "jira issue update OP-1 -s x"}
+{"want": 2, "name": "alias issue modify", "cmd": "jira issue modify OP-1 -s x"}
+{"want": 2, "name": "alias issue rm", "cmd": "jira issue rm OP-1"}
+{"want": 2, "name": "alias issue del", "cmd": "jira issue del OP-1"}
+{"want": 2, "name": "alias issue asg", "cmd": "jira issue asg OP-1 x"}
+{"want": 2, "name": "alias issue ln", "cmd": "jira issue ln OP-1 OP-2 Blocks"}
+{"want": 2, "name": "alias issue wat", "cmd": "jira issue wat OP-1 x"}
+{"want": 2, "name": "alias group issues", "cmd": "jira issues create -pOP -s x"}
+{"want": 2, "name": "alias group comments", "cmd": "jira issue comments add OP-1 x"}
+{"want": 2, "name": "alias group wlg", "cmd": "jira issue wlg add OP-1 1h"}
+{"want": 2, "name": "sprint close", "cmd": "jira sprint close 42"}
+{"want": 2, "name": "sprint complete", "cmd": "jira sprint complete 42"}
+{"want": 2, "name": "alias sprint assign", "cmd": "jira sprint assign 42 OP-1"}
+{"want": 2, "name": "alias group sprints", "cmd": "jira sprints add 42 OP-1"}
+{"want": 2, "name": "alias epic rm", "cmd": "jira epic rm OP-1"}
+{"want": 2, "name": "alias epic assign", "cmd": "jira epic assign OP-9 OP-1"}
+{"want": 2, "name": "heredoc with apostrophe, then create", "cmd": "cat > /tmp/d.md <<'EOF'\nIt's a draft\nEOF\njira issue create -pOP -s x --template /tmp/d.md --no-input"}
+{"want": 2, "name": "for ... do", "cmd": "for k in OP-1 OP-2; do jira issue move $k Done; done"}
+{"want": 2, "name": "if ... then", "cmd": "if true; then jira issue create -pOP -s x; fi"}
+{"want": 2, "name": "{ group; }", "cmd": "{ jira issue create -pOP -s x; }"}
+{"want": 2, "name": "! negation", "cmd": "! jira issue create -pOP -s x"}
+{"want": 2, "name": "bash -c", "cmd": "bash -c 'jira issue create -pOP -s x'"}
+{"want": 2, "name": "sh -c", "cmd": "sh -c \"jira issue move OP-1 Done\""}
+{"want": 2, "name": "backticks", "cmd": "echo `jira issue create -pOP -s x --no-input`"}
+{"want": 2, "name": "$( )", "cmd": "K=$(jira issue create -pOP -s x --no-input)"}
+{"want": 2, "name": "xargs", "cmd": "xargs -I{} jira issue move {} Done < /tmp/keys"}
+{"want": 2, "name": "timeout --signal=KILL 15", "cmd": "timeout --signal=KILL 15 jira issue create -pOP -s x"}
+{"want": 2, "name": "timeout -k 5 15", "cmd": "timeout -k 5 15 jira issue create -pOP -s x"}
+{"want": 2, "name": "env -u FOO", "cmd": "env -u FOO jira issue create -pOP -s x"}
+{"want": 2, "name": "nice", "cmd": "nice jira issue create -pOP -s x"}
+{"want": 2, "name": "absolute path (control)", "cmd": "/usr/local/bin/jira issue create -pOP -s x"}
+{"want": 2, "name": "curl -sd glued", "cmd": "curl -sd @/tmp/c.json https://x.atlassian.net/rest/api/2/issue/OP-1/comment"}
+{"want": 2, "name": "curl -sF glued", "cmd": "curl -sF file=@a.png https://x.atlassian.net/rest/api/2/issue/OP-1/attachments"}
+{"want": 2, "name": "curl uppercase host", "cmd": "curl -X POST -d @f https://X.ATLASSIAN.NET/rest/api/2/issue"}
+{"want": 2, "name": "curl api.atlassian.com gateway", "cmd": "curl -X POST -d @f https://api.atlassian.com/ex/jira/abc/rest/api/3/issue"}
+{"want": 2, "name": "wget --post-data", "cmd": "wget -qO- --post-data='{}' https://x.atlassian.net/rest/api/2/issue"}
+{"want": 2, "name": "wget --method=PUT --body-data", "cmd": "wget -qO- --method=PUT --body-data='{}' https://x.atlassian.net/rest/api/2/issue/OP-1"}
+{"want": 2, "name": "http -a before METHOD", "cmd": "http -a u:p POST https://x.atlassian.net/rest/api/2/issue summary=x"}
+{"want": 2, "name": "http implicit POST by data item", "cmd": "http -a u:p https://x.atlassian.net/rest/api/2/issue summary=x"}
+{"want": 2, "name": "xh post (control)", "cmd": "xh post https://x.atlassian.net/rest/api/2/issue summary=x"}
+{"want": 0, "name": "jira issue create --help", "cmd": "jira issue create --help"}
+{"want": 0, "name": "jira issue link -h", "cmd": "jira issue link -h"}
+{"want": 0, "name": "POST search/jql (a read)", "cmd": "curl -s -X POST -u a:b -H 'Content-Type: application/json' -d '{\"jql\":\"project = OP\"}' https://x.atlassian.net/rest/api/3/search/jql"}
+{"want": 0, "name": "git commit heredoc mentioning a command", "cmd": "git commit -F - <<'EOF'\nDocument the create command\n\njira issue create -pOP -s x is what the skill runs.\nEOF"}
+{"want": 0, "name": "cat > notes heredoc", "cmd": "cat > /tmp/notes.md <<'EOF'\njira issue edit OP-1 -b x\nEOF"}
+{"want": 0, "name": "printf multi-line in quotes", "cmd": "printf 'a\njira issue create -pOP\n' > /tmp/x"}
+{"want": 0, "name": "rg for a command", "cmd": "rg -n 'jira issue create' skills/"}
+{"want": 0, "name": "jira issue view (control)", "cmd": "jira issue view OP-1 --comments 5 --plain"}
+{"want": 2, "name": "create-task.md:430 create", "cmd": "curl -s -X POST -u \"$E:$JIRA_API_TOKEN\" -H 'Content-Type: application/json' \\\n  --data-binary @/tmp/op_create.json \"$SITE/rest/api/2/issue\" \\\n  | jq -c '{key, errors, errorMessages}'"}
+{"want": 2, "name": "create-task.md:456 end date", "cmd": "curl -s -o /dev/null -w '%{http_code}\\n' -X PUT -u \"$E:$JIRA_API_TOKEN\" \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"fields\":{\"<CF_END_DATE>\":\"YYYY-MM-DD\"}}' \"$SITE/rest/api/2/issue/<KEY>\""}
+{"want": 2, "name": "create-task.md:538 end date, $S", "cmd": "curl -s -o /dev/null -w '%{http_code}\\n' -X PUT -u \"$E:$JIRA_API_TOKEN\" \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"fields\":{\"<CF_END_DATE>\":\"2026-09-30\"}}' \\\n  \"$S/rest/api/2/issue/PROJ-123\""}
+{"want": 2, "name": "create-task.md:565 bulk move, then its status read", "cmd": "curl -s -X POST -u \"$E:$JIRA_API_TOKEN\" -H 'Content-Type: application/json' \\\n  --data-binary @/tmp/move.json \"$SITE/rest/api/3/bulk/issues/move\"      # → {\"taskId\":\"…\"}\ncurl -s -u \"$E:$JIRA_API_TOKEN\" \"$SITE/rest/api/3/bulk/queue/<TASK_ID>\" \\\n  | jq -c '{status, failedAccessibleIssues}'                              # COMPLETE, {}"}
+{"want": 2, "name": "create-task.md:596 reporter", "cmd": "curl -s -X PUT -u \"$EMAIL:$JIRA_API_TOKEN\" \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"fields\":{\"reporter\":{\"id\":\"<ACCOUNT_ID>\"}}}' \\\n  \"$SITE/rest/api/3/issue/PROJ-123\""}
+{"want": 2, "name": "create-task.md:631 fields", "cmd": "curl -s -o /dev/null -w '%{http_code}\\n' -X PUT -u \"$E:$JIRA_API_TOKEN\" \\\n  -H 'Content-Type: application/json' \\\n  --data-binary @/tmp/op_fields.json \\\n  \"$S/rest/api/2/issue/PROJ-123\""}
+{"want": 0, "name": "create-task.md:567 bulk status read", "cmd": "curl -s -u \"$E:$JIRA_API_TOKEN\" \"$SITE/rest/api/3/bulk/queue/<TASK_ID>\" \\\n  | jq -c '{status, failedAccessibleIssues}'"}
+{"want": 0, "name": "jira alone", "cmd": "jira"}
+{"want": 0, "name": "jira me", "cmd": "jira me"}
+{"want": 0, "name": "jira serverinfo", "cmd": "jira serverinfo"}
+{"want": 0, "name": "jira open", "cmd": "jira open OP-1"}
+{"want": 0, "name": "jira help issue link", "cmd": "jira help issue link"}
+{"want": 0, "name": "jira issue (group help)", "cmd": "jira issue"}
+{"want": 0, "name": "jira issue show", "cmd": "jira issue show OP-1"}
+{"want": 0, "name": "jira issue ls", "cmd": "jira issue ls -a me --plain"}
+{"want": 0, "name": "jira issues search", "cmd": "jira issues search 'bug' --plain"}
+{"want": 0, "name": "jira -c FILE issue list", "cmd": "jira -c ~/.config/.jira/acme.yml issue list --plain"}
+{"want": 0, "name": "jira -p OP sprint list", "cmd": "jira -p OP sprint list --state active"}
+{"want": 0, "name": "jira epic list", "cmd": "jira epic list --plain"}
+{"want": 0, "name": "jira board list", "cmd": "jira board list"}
+{"want": 0, "name": "jira project list", "cmd": "jira project list"}
+{"want": 0, "name": "jira release list", "cmd": "jira release list"}
+{"want": 0, "name": "command -v jira", "cmd": "command -v jira"}
+{"want": 2, "name": "unknown jira command is refused", "cmd": "jira frobnicate OP-1"}
+{"want": 2, "name": "issue comment add", "cmd": "jira issue comment add OP-1 x"}
+{"want": 2, "name": "--help after -- is an argument", "cmd": "jira issue create -pOP -s x -- --help"}
+{"want": 2, "name": "$( ) inside double quotes", "cmd": "K=\"$(jira issue create -pOP -s x --no-input)\""}
+{"want": 2, "name": "backticks in double quotes", "cmd": "echo \"`jira issue create -pOP -s x`\""}
+{"want": 2, "name": "bash -lc", "cmd": "bash -lc 'jira issue move OP-1 Done'"}
+{"want": 2, "name": "bash -o pipefail -c", "cmd": "bash -o pipefail -c 'jira issue move OP-1 Done'"}
+{"want": 2, "name": "while loop", "cmd": "while read k; do jira issue move $k Done; done < /tmp/keys"}
+{"want": 2, "name": "xargs -I {} spaced", "cmd": "xargs -I {} jira issue move {} Done < /tmp/keys"}
+{"want": 2, "name": "env -", "cmd": "env - jira issue create -pOP -s x"}
+{"want": 0, "name": "bash -c with a read", "cmd": "bash -c 'jira issue view OP-1'"}
+{"want": 0, "name": "bash script.sh", "cmd": "bash ./jira-report.sh"}
+{"want": 0, "name": "backticks in single quotes", "cmd": "git commit -m 'Document `jira issue edit`'"}
+{"want": 0, "name": "escaped backticks in double quotes", "cmd": "git commit -m \"Document \\`jira issue edit\\`\""}
+{"want": 0, "name": "git commit with $(cat heredoc)", "cmd": "git commit -m \"$(cat <<'EOF'\nDocument the edit command\n\njira issue edit OP-1 -b x\nEOF\n)\""}
+{"want": 0, "name": "heredoc, no jira after it", "cmd": "cat > /tmp/d.md <<'EOF'\nIt's a draft\nEOF"}
+{"want": 0, "name": "arithmetic << is not a heredoc", "cmd": "echo $((1<<2)); jira issue view OP-1"}
+{"want": 0, "name": "GET with $SITE", "cmd": "curl -s -u \"$E:$T\" \"$SITE/rest/api/3/issue/OP-1?fields=summary\""}
+{"want": 0, "name": "curl -sSf GET", "cmd": "curl -sSf https://x.atlassian.net/rest/api/3/myself"}
+{"want": 0, "name": "curl -XGET", "cmd": "curl -XGET https://x.atlassian.net/rest/api/3/myself"}
+{"want": 0, "name": "curl -G -d is a query", "cmd": "curl -G -d jql=x https://x.atlassian.net/rest/api/2/issue/picker"}
+{"want": 0, "name": "POST search on $SITE", "cmd": "curl -s -X POST -d @q.json \"$SITE/rest/api/3/search/jql\""}
+{"want": 0, "name": "wget GET", "cmd": "wget -qO- https://x.atlassian.net/rest/api/2/myself"}
+{"want": 0, "name": "wget -d is debug", "cmd": "wget -d -qO- https://x.atlassian.net/rest/api/2/myself"}
+{"want": 0, "name": "http GET with query item", "cmd": "http -a u:p GET https://x.atlassian.net/rest/api/2/search jql==x"}
+{"want": 0, "name": "http header item", "cmd": "http https://x.atlassian.net/rest/api/2/myself Accept:application/json"}
+{"want": 0, "name": "POST elsewhere", "cmd": "curl -s -X POST -d x https://example.com/api"}
+{"want": 2, "name": "PUT to search is still a write", "cmd": "curl -X PUT https://x.atlassian.net/rest/api/3/search"}
+{"want": 2, "name": "agile sprint POST", "cmd": "curl -s -X POST -d @s.json \"$SITE/rest/agile/1.0/sprint/42/issue\""}
+{"want": 2, "name": "curl --json", "cmd": "curl --json '{}' https://x.atlassian.net/rest/api/2/issue"}
+{"want": 2, "name": "curl -T upload", "cmd": "curl -sT f.png https://x.atlassian.net/rest/api/2/issue/OP-1/attachments"}
+{"want": 2, "name": "xh body from stdin", "cmd": "xh https://x.atlassian.net/rest/api/2/issue < f.json"}
+{"want": 2, "name": "http --raw", "cmd": "http --raw '{}' https://x.atlassian.net/rest/api/2/issue"}

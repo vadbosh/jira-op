@@ -287,7 +287,7 @@ Acceptance Test:
 (`Approve? (yes/no)` in an English session.) Nothing after it — no question
 dialog, no field questions; those were step 0. The create runs only after the
 human types «да» in reply. `jira-write-guard` checks exactly that — the marker
-in the reply before the last typed message, and that message being an approval
+as the last line of the reply before the last typed message, and that message being an approval
 — and refuses the write otherwise. The same holds for every later write:
 an edit shows the before/after, a transition names the status, and each ends
 with the same line.

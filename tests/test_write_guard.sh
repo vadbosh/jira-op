@@ -45,9 +45,17 @@ expect() {
 	else
 		payload="$(jq -cn --arg c "$cmd" --arg p "$tr" '{tool_name:"Bash",tool_input:{command:$c},transcript_path:$p}')"
 	fi
-	printf '%s' "$payload" | "$GUARD" >/dev/null 2>&1; got=$?
-	if [ "$got" = "$want" ]; then pass=$((pass+1)); else
-		fail=$((fail+1)); [ "$QUIET" = 1 ] || echo "FAIL $name: want $want, got $got"
+	raw "$name" "$want" "$payload"
+}
+# raw <name> <0|2> <payload> — any stdin, as the host would send it
+raw() {
+	local got
+	printf '%s' "$3" | "$GUARD" >/dev/null 2>&1; got=$?
+	tally "$1" "$2" "$got"
+}
+tally() {  # tally <name> <want> <got>
+	if [ "$3" = "$2" ]; then pass=$((pass+1)); else
+		fail=$((fail+1)); [ "$QUIET" = 1 ] || echo "FAIL $1: want $2, got $3"
 	fi
 }
 
@@ -70,6 +78,18 @@ cc "$T/oldmark.jsonl" "u:t" "a:$MARK" "u:нет" "a:ок, правлю" "u:да"
 expect "cc: marker must be in the reply before the да" 2 "$CREATE" "$T/oldmark.jsonl"
 cc "$T/en.jsonl" "u:file it" "a:Summary: X ... Approve? (yes/no)" "u:yes"
 expect "cc: English marker and yes" 0 "$CREATE" "$T/en.jsonl"
+cc "$T/slash.jsonl" "u:заведи тикет" "a:$MARK" "u:<command-name>/compact</command-name>" "a:контекст сжат" "u:да"
+expect "cc: a slash command closes the draft's window" 2 "$CREATE" "$T/slash.jsonl"
+cc "$T/intr.jsonl" "u:заведи тикет" "a:$MARK" "u:[Request interrupted by user]" "a:новый ответ" "u:да"
+expect "cc: an interrupt closes the draft's window" 2 "$CREATE" "$T/intr.jsonl"
+cc "$T/inj.jsonl" "u:заведи тикет" "a:$MARK" "u:<system-reminder>x</system-reminder>" "u:да"
+expect "cc: injected text does not close the window" 0 "$CREATE" "$T/inj.jsonl"
+cc "$T/quoted.jsonl" "u:как работает guard?" "a:Он ждёт строку Утверждаешь? (да/нет) в конце черновика. Понятно?" "u:да"
+expect "cc: marker quoted mid-reply is not the question" 2 "$CREATE" "$T/quoted.jsonl"
+cc "$T/second.jsonl" "u:заведи тикет" "a:$MARK"$'\n\nИ ещё: ставить в спринт?' "u:да"
+expect "cc: another question after the marker" 2 "$CREATE" "$T/second.jsonl"
+cc "$T/bold.jsonl" "u:заведи тикет" $'a:Черновик ...\n\n**Утверждаешь? (да/нет)**' "u:да"
+expect "cc: marker in bold still ends the reply" 0 "$CREATE" "$T/bold.jsonl"
 
 # --- Codex rollout ----------------------------------------------------------------
 codex "$T/cx.jsonl" "u:заведи тикет" "a:$MARK" "u:утверждаю"
@@ -98,10 +118,17 @@ for c in \
 	"jira epic add OP-9 OP-1" \
 	"curl -s -X PUT -u a:b -d '{\"fields\":{}}' https://x.atlassian.net/rest/api/2/issue/OP-1" \
 	"curl -s -u a:b --data-binary @/tmp/c.json https://x.atlassian.net/rest/api/2/issue/OP-1/comment" \
-	"curl -sXDELETE https://x.atlassian.net/rest/api/2/issue/OP-1"; do
+	"curl -sXDELETE https://x.atlassian.net/rest/api/2/issue/OP-1" \
+	$'cat > /tmp/d.md <<\'EOF\'\nDraft text\nEOF\njira issue create -pOP -s x --template /tmp/d.md --no-input' \
+	$'cat > /tmp/d.md <<\'EOF\'\nIt\'s a draft\nEOF\njira issue create -pOP -s x --template /tmp/d.md --no-input' \
+	$'cat <<EOF\nno terminator, so this is not a body\njira issue edit OP-1 -b x' \
+	"curl -s -X POST -d x https://x.atlassian.net/rest/api/3/search/jql https://x.atlassian.net/rest/api/2/issue" \
+	"jira issue create -pOP -s x --no-input" \
+	"echo it's ready; jira issue create -pOP -s x --no-input"; do
 	expect "write: $c" 2 "$c" -
 done
 for c in \
+	"echo it's ready" \
 	"jira issue view OP-1" \
 	"jira issue list -a me --plain --paginate 15 </dev/null" \
 	"jira sprint list --state active" \
@@ -111,12 +138,43 @@ for c in \
 	"rg -n 'jira issue create' references/create-task.md" \
 	"echo 'jira issue create -pOP'" \
 	"curl -s -X POST -d x https://example.com/api" \
-	"git commit -m 'document jira issue edit'"; do
+	"git commit -m 'document jira issue edit'" \
+	"jira issue create --help" \
+	"jira issue link -h" \
+	"jira sprint add --help" \
+	"jira help issue link" \
+	$'git commit -F - <<\'EOF\'\nDocument the create command\n\njira issue create -pOP -s x is what the skill runs.\nEOF' \
+	$'git commit -m "$(cat <<\'EOF\'\nDocument the edit command\n\njira issue edit OP-1 -b x\nEOF\n)"' \
+	$'cat > /tmp/notes.md <<\'EOF\'\njira issue edit OP-1 -b x\nEOF' \
+	$'cat > /tmp/d.md <<\'EOF\'\nIt\'s a draft\nEOF' \
+	"curl -s -X POST -u a:b -H 'Content-Type: application/json' -d '{\"jql\":\"project = OP\"}' https://x.atlassian.net/rest/api/3/search/jql"; do
 	expect "not a write: $c" 0 "$c" -
 done
 
+# --- command shapes: tests/guard_cases.jsonl, one {want, name, cmd} per line --------
+while IFS= read -r row; do
+	expect "$(jq -r .name <<<"$row")" "$(jq -r .want <<<"$row")" "$(jq -r .cmd <<<"$row")" -
+done <"$ROOT/tests/guard_cases.jsonl"
+
+# --- a write the guard fails on is refused, not let through -------------------------
+printf '[]\n"x"\n' >"$T/notobj.jsonl"
+expect "crash: transcript lines are not objects" 2 "jira issue create -pX" "$T/notobj.jsonl"
+printf '\xff\n' >"$T/utf.jsonl"
+expect "crash: invalid UTF-8 in the transcript" 2 "jira issue create -pX" "$T/utf.jsonl"
+mkdir "$T/dir.jsonl"
+expect "crash: transcript path is a directory" 2 "jira issue create -pX" "$T/dir.jsonl"
+raw "crash: tool_input is a string" 2 '{"tool_name":"Bash","tool_input":"jira issue create -pX"}'
+raw "crash: opencode text is a number" 2 \
+	'{"tool_name":"bash","tool_input":{"command":"jira issue create -pX"},"messages":[{"role":"user","text":5}]}'
+
 # --- not a hook payload -----------------------------------------------------------
-printf 'garbage' | "$GUARD" >/dev/null 2>&1 && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL garbage stdin"; }
+raw "garbage stdin" 0 'garbage'
+raw "payload is an array" 0 '[1]'
+
+# --- the Opencode pre-filter is the guard's MENTION pattern -----------------------
+g="$(sed -n 's/^MENTION = re.compile(r"\(.*\)", re.I)$/\1/p' "$GUARD")"
+p="$(sed -n 's#^const MENTION = /\(.*\)/i$#\1#p' "$ROOT/plugins/opencode/jira-write-guard.ts" | sed 's#\\/#/#g')"
+if [ -n "$g" ] && [ "$g" = "$p" ]; then tally "plugin pre-filter" 0 0; else tally "plugin pre-filter = MENTION ('$p' vs '$g')" 0 1; fi
 
 echo "jira-write-guard: $pass passed, $fail failed"
 [ "$fail" = 0 ]

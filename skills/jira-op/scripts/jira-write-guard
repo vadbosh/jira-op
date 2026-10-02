@@ -7,9 +7,10 @@ passes only when both hold:
 
   1. the last message the human TYPED is an approval — "да", "утверждаю",
      "создавай", "согласен", "yes", "approve" — the whole message, nothing else;
-  2. the assistant text written since the human message before it contains the
-     marker line `Утверждаешь? (да/нет)` (or `Approve? (yes/no)`), i.e. a draft
-     was shown and the turn ended on the question.
+  2. the last assistant reply before it — after the previous human message,
+     slash command or interrupt — ENDS with the marker line
+     `Утверждаешь? (да/нет)` (or `Approve? (yes/no)`), i.e. a draft was shown
+     and the turn ended on the question.
 
 An answer picked in a question dialog (AskUserQuestion) is a tool result, not a
 typed message, and never counts: on 2026-10-01 a ticket was created right after
@@ -17,13 +18,21 @@ the four field questions were answered, while the draft sat unread behind the
 dialog. Every write of the same turn after one "да" passes — create, sprint,
 end date, transition, comment.
 
+What is a write. For jira-cli, everything except a known read (an allowlist
+taken from `jira --help` of 1.7.0): a new verb or alias is refused until it is
+listed, never let through. For curl, wget, httpie and xh aimed at `/rest/api/`,
+`/rest/agile/` or an Atlassian host: PUT, PATCH, DELETE, or POST/a request body,
+except a POST search. Heredoc bodies are data; `$( )`, backticks and `sh -c`
+strings are commands. Not seen: a write made from a script file or from another
+language (`python3 -c`, `node -e`).
+
 Input (stdin, JSON): the hook payload. `tool_input.command` is the command;
 the conversation comes from `transcript_path` (Claude Code or Codex JSONL) or,
 from the Opencode plugin, from `messages`: [{"role": "user"|"assistant", "text": …}].
 
 Exit 0 — allowed. Exit 2 — refused; the reason is on stderr, which every
-assistant shows to the model. A write with no readable conversation is refused:
-the guard does not wave writes through blind.
+assistant shows to the model. A write with no readable conversation is refused,
+and so is a write the guard fails on: it does not wave writes through blind.
 """
 import json
 import re
@@ -43,28 +52,119 @@ REASON = (
 
 # --- what counts as a Jira write --------------------------------------------
 
-JIRA_WRITE = [
-    ("issue", {"create", "edit", "move", "transition", "assign", "link", "unlink",
-               "delete", "clone", "watch"}),
-    ("sprint", {"add"}),
-    ("epic", {"add", "remove", "create"}),
-]
-WRITE_FLAGS = {"-d", "--data", "--data-raw", "--data-binary", "--data-urlencode",
-               "--json", "-F", "--form", "-T", "--upload-file"}
-WRAPPERS = {"rtk", "timeout", "nohup", "time", "command", "env", "exec", "sudo"}
+# Anything that names Jira at all. The Opencode plugin pre-filters with the same
+# pattern; tests/test_write_guard.sh checks that the two agree.
+MENTION = re.compile(r"\bjira\b|/rest/(?:api|agile)/|atlassian\.(?:net|com)", re.I)
+
+# jira-cli 1.7.0 reads, from `jira --help` and `jira <group> --help`.
+JIRA_READ_TOP = {"open", "me", "serverinfo", "version", "help", "init", "man", "completion"}
+JIRA_GROUPS = {"issue", "issues", "sprint", "sprints", "epic", "epics", "board", "boards",
+               "project", "projects", "release", "releases"}
+JIRA_READ_VERBS = {"list", "lists", "ls", "search", "view", "show"}
+JIRA_VALUE_FLAGS = {"-c", "--config", "-p", "--project"}
+HELP_FLAGS = {"-h", "--help"}
+
+# Words that start a command without being it.
+SHELL_KEYWORDS = {"if", "then", "else", "elif", "while", "until", "do", "{", "!"}
+# Wrappers run the command after their options; the set lists options taking a value.
+WRAPPERS = {
+    "rtk": set(), "nohup": set(), "command": set(), "builtin": set(), "chronic": set(),
+    "time": {"-f", "-o"},
+    "exec": {"-a"},
+    "sudo": {"-u", "-g", "-C", "-D", "-h", "-p", "-r", "-t", "-T", "-U"},
+    "env": {"-u", "-C", "-S", "--unset", "--chdir", "--split-string"},
+    "nice": {"-n", "--adjustment"},
+    "timeout": {"-s", "-k", "--signal", "--kill-after"},
+    "xargs": {"-a", "-d", "-E", "-I", "-L", "-n", "-P", "-s", "--arg-file", "--delimiter",
+              "--max-args", "--max-lines", "--max-procs", "--max-chars"},
+    "stdbuf": {"-i", "-o", "-e"},
+    "ionice": {"-c", "-n", "-p"},
+}
+SHELLS = {"bash", "sh", "zsh", "dash", "ksh"}
+
+HTTP_CLIENTS = {"curl", "wget", "http", "https", "xh", "xhs"}
+JIRA_URL = re.compile(r"/rest/(?:api|agile)/|atlassian\.(?:net|com)", re.I)
+# Jira search takes its JQL in a POST body and still only reads.
+SEARCH_URL = re.compile(r"/rest/api/[^/]+/search(?:/jql)?/?(?:[?#]|$)", re.I)
+WRITE_METHODS = {"PUT", "PATCH", "DELETE"}
+READ_METHODS = {"GET", "HEAD", "OPTIONS"}
+CURL_VALUE = set("AbcCdDeEFHKmoPQrTtuUwxXyYz")  # curl short options that take a value
+CURL_BODY = ("--data", "--json", "--form", "--upload-file")
+WGET_BODY = {"--post-data", "--post-file", "--body-data", "--body-file"}
+HTTPIE_VALUE = {"-a", "--auth", "-A", "--auth-type", "-o", "--output", "-p", "--print",
+                "--session", "--session-read-only", "--verify", "--cert", "--cert-key",
+                "--proxy", "--timeout", "--pretty", "-s", "--style", "--format-options",
+                "--max-redirects", "--default-scheme", "--boundary"}
+HTTPIE_ITEM = re.compile(r"^[^\s=:@]+(?::=@?|=@?|@)(?!=)")  # k=v, k:=json, k@file — a body
+
+HEREDOC = re.compile(r"(?<!<)<<(?!<)(-?)\s*\\?([\"']?)([A-Za-z0-9_.-]+)\2")
+MAX_DEPTH = 5
+
+
+def _strip_heredocs(cmd):
+    """Drop heredoc bodies: they are data, not commands.
+
+    The line carrying `<<WORD` stays, the lines up to the line `WORD` go. A
+    heredoc with no terminating line is left whole, so a stray `<<` (inside
+    quotes, or `$((1<<2))`) cannot hide the commands that follow it.
+    """
+    lines = cmd.split("\n")
+    out, i = [], 0
+    while i < len(lines):
+        line = lines[i]
+        out.append(line)
+        i += 1
+        for m in HEREDOC.finditer(line):
+            word, tabs = m.group(3), m.group(1) == "-"
+            end = next((j for j in range(i, len(lines))
+                        if (lines[j].lstrip("\t") if tabs else lines[j]).rstrip("\r") == word),
+                       None)
+            if end is None:
+                break
+            i = end + 1
+    return "\n".join(out)
+
+
+def _substitutions(cmd):
+    """Bodies of `…` and $(…) outside single quotes: bash runs them as commands."""
+    out, i, n = [], 0, len(cmd)
+    single = double = False
+    while i < n:
+        c = cmd[i]
+        if c == "\\" and not single:
+            i += 2
+            continue
+        if c == "'" and not double:
+            single = not single
+        elif c == '"' and not single:
+            double = not double
+        elif not single and c == "`":
+            j = i + 1
+            while j < n and cmd[j] != "`":
+                j += 2 if cmd[j] == "\\" else 1
+            out.append(cmd[i + 1:j])
+            i = j
+        elif not single and cmd.startswith("$(", i) and not cmd.startswith("$((", i):
+            depth, j = 1, i + 2
+            while j < n and depth:
+                depth += {"(": 1, ")": -1}.get(cmd[j], 0)
+                j += 1
+            out.append(cmd[i + 2:j - 1 if depth == 0 else j])
+            i = j - 1
+        i += 1
+    return out
 
 
 def _segments(cmd):
-    """Split a shell command into simple commands at ; && || | and newlines."""
+    """Split a shell command into simple commands at ; && || | and newlines.
+
+    Raises ValueError when the quoting does not parse (an unbalanced quote).
+    """
     out, cur = [], []
-    try:
-        lex = shlex.shlex(cmd, posix=True, punctuation_chars=";&|()\n")
-        lex.whitespace = " \t\r"
-        lex.whitespace_split = True
-        tokens = list(lex)
-    except ValueError:
-        tokens = cmd.split()
-    for tok in tokens:
+    lex = shlex.shlex(cmd, posix=True, punctuation_chars=";&|()\n")
+    lex.whitespace = " \t\r"
+    lex.whitespace_split = True
+    for tok in lex:
         if tok and set(tok) <= set(";&|()\n"):
             if cur:
                 out.append(cur)
@@ -77,76 +177,188 @@ def _segments(cmd):
 
 
 def _strip_prefix(words):
-    """Drop VAR=value assignments and wrappers such as `rtk`, `timeout 15`."""
+    """Drop VAR=value assignments, shell keywords and wrappers with their options."""
     i = 0
     while i < len(words):
         w = words[i]
-        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", w):
+        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", w) or w in SHELL_KEYWORDS:
             i += 1
         elif w in WRAPPERS:
+            takes = WRAPPERS[w]
             i += 1
-            if w == "timeout" and i < len(words) and re.match(r"^\d", words[i]):
+            while i < len(words) and words[i].startswith("-"):
+                opt = words[i]
                 i += 1
+                if opt == "--":
+                    break
+                if opt in takes:
+                    i += 1
+            if w == "timeout":
+                i += 1  # the duration
         else:
             break
     return words[i:]
 
 
-def is_jira_write(cmd):
-    for seg in _segments(cmd):
+def _dash_c(args):
+    """The script string of `bash -c '…'`, or None."""
+    k = 0
+    while k < len(args):
+        w = args[k]
+        if w in ("-o", "-O", "+o", "+O"):
+            k += 2
+            continue
+        if not w.startswith("-") or w.startswith("--"):
+            return None
+        if "c" in w[1:]:
+            return args[k + 1] if k + 1 < len(args) else None
+        k += 1
+    return None
+
+
+def _jira_is_write(args):
+    """True unless the jira-cli command is a known read."""
+    before_dashes = args[:args.index("--")] if "--" in args else args
+    if HELP_FLAGS & set(before_dashes):
+        return False  # `jira issue create --help` prints usage
+    pos, k = [], 0
+    while k < len(args):
+        w = args[k]
+        if w in JIRA_VALUE_FLAGS:
+            k += 2
+            continue
+        if not w.startswith("-"):
+            pos.append(w)
+        k += 1
+    if not pos or pos[0] in JIRA_READ_TOP:
+        return False
+    if pos[0] in JIRA_GROUPS:
+        return len(pos) > 1 and pos[1] not in JIRA_READ_VERBS
+    return True
+
+
+def _next(args, k):
+    return args[k + 1] if k + 1 < len(args) else ""
+
+
+def _http_is_write(prog, args):
+    urls = [w for w in args if JIRA_URL.search(w)]
+    if not urls:
+        return False
+    method, body = None, False
+    if prog == "curl":
+        for k, w in enumerate(args):
+            if w.startswith("--"):
+                name, _, val = w.partition("=")
+                if name == "--request":
+                    method = (val or _next(args, k)).upper()
+                elif name == "--get":
+                    method = method or "GET"
+                elif name.startswith(CURL_BODY):
+                    body = True
+            elif w.startswith("-") and len(w) > 1:
+                # A short-option cluster: -sd @f, -sXDELETE, -sF file=@a
+                for p, ch in enumerate(w[1:], 1):
+                    if ch == "X":
+                        method = (w[p + 1:] or _next(args, k)).upper()
+                        break
+                    if ch == "G":
+                        method = method or "GET"
+                    if ch in "dFT":
+                        body = True
+                    if ch in CURL_VALUE:
+                        break
+    elif prog == "wget":
+        for k, w in enumerate(args):
+            name, _, val = w.partition("=")
+            if name == "--method":
+                method = (val or _next(args, k)).upper()
+            elif name in WGET_BODY:
+                body = True
+    else:  # httpie, xh: [options] [METHOD] URL [items]
+        pos, k = [], 0
+        while k < len(args):
+            w = args[k]
+            if w in HTTPIE_VALUE:
+                k += 2
+                continue
+            if w == "--raw" or w.startswith(("--raw=", "<")):
+                body = True
+            elif not w.startswith("-"):
+                pos.append(w)
+            k += 1
+        if pos and pos[0].upper() in WRITE_METHODS | READ_METHODS | {"POST"}:
+            method = pos.pop(0).upper()
+        if any(HTTPIE_ITEM.match(w) for w in pos[1:]):
+            body = True
+    if method in WRITE_METHODS:
+        return True
+    if method in READ_METHODS:
+        return False
+    if all(SEARCH_URL.search(u) for u in urls):
+        return False  # POST with a JQL body to search/ is a read
+    return method == "POST" or body
+
+
+def is_jira_write(cmd, depth=0):
+    if not MENTION.search(cmd):
+        return False
+    cmd = _strip_heredocs(cmd)
+    cmd = re.sub(r"\\\r?\n", " ", cmd)  # a `\`-continued line is one command
+    if depth < MAX_DEPTH and any(is_jira_write(s, depth + 1) for s in _substitutions(cmd)):
+        return True
+    try:
+        segments = _segments(cmd)
+    except ValueError:
+        # Unparsable quoting: the segments cannot be trusted, so any mention of
+        # Jira counts as a write rather than judging the first word alone.
+        return bool(MENTION.search(cmd))
+    for seg in segments:
         words = _strip_prefix(seg)
         if not words:
             continue
         prog = words[0].rsplit("/", 1)[-1]
-        rest = [w for w in words[1:] if not w.startswith("-")]
-        if prog == "jira" and len(rest) >= 2:
-            for noun, verbs in JIRA_WRITE:
-                if rest[0] == noun and rest[1] in verbs:
-                    return True
-            if rest[0] == "issue" and rest[1] in ("comment", "worklog") and \
-               len(rest) >= 3 and rest[2] == "add":
+        if prog in SHELLS:
+            script = _dash_c(words[1:])
+            if script is not None and depth < MAX_DEPTH and is_jira_write(script, depth + 1):
                 return True
-        if prog in ("curl", "http", "https", "xh", "wget"):
-            if not any(re.search(r"atlassian\.net/rest/", w) for w in words):
-                continue
-            joined = " ".join(words)
-            # -X POST, -XPOST, glued short flags (-sXDELETE), --request=PUT
-            if re.search(r"(?:^|\s)(?:-[A-Za-z]*X|--request)[\s=]*(POST|PUT|PATCH|DELETE)\b",
-                         joined, re.I):
+        elif prog == "jira":
+            if _jira_is_write(words[1:]):
                 return True
-            # A body means a write: -d/--data*/--json/-F/-T, also glued (-d{...}, --data=@f).
-            if any(w in WRITE_FLAGS or w.startswith("--data") or
-                   (w.startswith("-d") and not w.startswith("--")) for w in words):
-                return True
-            if prog in ("http", "https", "xh") and len(words) > 1 and \
-               words[1].upper() in ("POST", "PUT", "PATCH", "DELETE"):
+        elif prog in HTTP_CLIENTS:
+            if _http_is_write(prog, words[1:]):
                 return True
     return False
 
 
 # --- reading the conversation -----------------------------------------------
 
+# User entries that are not typed by the human.
 SKIP_PREFIXES = ("<command-", "<local-command", "<system-reminder", "# agents.md instructions",
                  "<environment_context", "<user_instructions", "[request interrupted")
+# Of those, the ones the human caused: they still close the window of a draft.
+BOUNDARY_PREFIXES = ("<command-", "<local-command", "[request interrupted")
 
 
 def _text_of(content, kinds):
     if isinstance(content, str):
         return content
     if isinstance(content, list):
-        return "\n".join(c.get("text", "") for c in content
+        return "\n".join(str(c.get("text", "")) for c in content
                          if isinstance(c, dict) and c.get("type") in kinds)
     return ""
 
 
 def _from_transcript(path):
-    """[(role, text)] for typed human messages and assistant text, in order."""
+    """[(role, text)] for human messages and assistant text, in order."""
     events = []
-    with open(path, encoding="utf-8") as fh:
+    with open(path, encoding="utf-8", errors="replace") as fh:
         for line in fh:
             try:
                 e = json.loads(line)
             except ValueError:
+                continue
+            if not isinstance(e, dict):
                 continue
             # Claude Code
             if e.get("type") in ("user", "assistant") and isinstance(e.get("message"), dict):
@@ -180,16 +392,35 @@ def _norm(text):
 
 
 def approved(events):
-    humans = [i for i, (r, t) in enumerate(events)
-              if r == "user" and t.strip() and not t.strip().lower().startswith(SKIP_PREFIXES)]
-    if not humans:
+    def lead(t):
+        return t.strip().lower()
+
+    typed = [i for i, (r, t) in enumerate(events)
+             if r == "user" and t.strip() and not lead(t).startswith(SKIP_PREFIXES)]
+    if not typed:
         return False
-    last = humans[-1]
+    last = typed[-1]
     if _norm(events[last][1]) not in APPROVALS:
         return False
-    prev = humans[-2] if len(humans) > 1 else -1
-    shown = " ".join(t for r, t in events[prev + 1:last] if r == "assistant").lower()
-    return any(m in shown for m in MARKERS)
+    prev = max((i for i in range(last) if events[i][0] == "user" and
+                (i in typed or lead(events[i][1]).startswith(BOUNDARY_PREFIXES))), default=-1)
+    replies = [t for r, t in events[prev + 1:last] if r == "assistant" and t.strip()]
+    if not replies:
+        return False
+    tail = replies[-1].rstrip().rstrip("*_`").rstrip().lower()
+    return tail.endswith(MARKERS)
+
+
+def _events(payload):
+    if isinstance(payload.get("messages"), list):
+        return [(m.get("role"), m.get("text") if isinstance(m.get("text"), str) else "")
+                for m in payload["messages"] if isinstance(m, dict)]
+    if payload.get("transcript_path"):
+        try:
+            return _from_transcript(payload["transcript_path"])
+        except OSError:
+            return []
+    return []
 
 
 def main():
@@ -197,21 +428,17 @@ def main():
         payload = json.loads(sys.stdin.read() or "{}")
     except ValueError:
         return 0  # not a hook payload: nothing to judge
-    cmd = (payload.get("tool_input") or {}).get("command")
-    if not isinstance(cmd, str) or not is_jira_write(cmd):
+    if not isinstance(payload, dict):
+        return 0
+    ti = payload.get("tool_input")
+    cmd = ti.get("command") if isinstance(ti, dict) else ti
+    if not isinstance(cmd, str):
         return 0
     try:
-        if isinstance(payload.get("messages"), list):
-            events = [(m.get("role"), m.get("text") or "") for m in payload["messages"]
-                      if isinstance(m, dict)]
-        elif payload.get("transcript_path"):
-            events = _from_transcript(payload["transcript_path"])
-        else:
-            events = []
-    except OSError:
-        events = []
-    if approved(events):
-        return 0
+        if not is_jira_write(cmd) or approved(_events(payload)):
+            return 0
+    except Exception:  # noqa: BLE001 — a guard that fails on a write refuses it
+        pass
     print(REASON, file=sys.stderr)
     return 2
 

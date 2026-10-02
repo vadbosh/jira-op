@@ -24,3 +24,6 @@ token.env
 # Your filled-in site values. The template SITE.example.md is committed;
 # the real one is yours and stays here.
 skills/jira-op/SITE.md
+
+# Python bytecode, left when a test or a probe imports the guard.
+__pycache__/

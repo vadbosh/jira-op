@@ -294,7 +294,10 @@ the issue type".
   the field questions — story points, sprint, End Date, status — are asked
   *before* the draft, in their own step, and are never approval; neither is an
   option picked in a question dialog. `jira-write-guard`, the PreToolUse hook
-  `install.sh` wires, refuses any write that skips this. Measured 2026-10-01: a
+  `install.sh` wires, refuses a write that skips this when it goes through
+  `jira`, `curl`, `wget`, `httpie` or `xh`. A write from a script file or from
+  another language (`python3 -c`, `node -e`) is not seen, so never route one
+  that way. Measured 2026-10-01: a
   ticket was filed right after the four field questions were answered, with the
   draft unread behind the dialog — and on this site a ticket cannot be deleted.
 - **Never transition without reading the current status first.** `To Do` →
