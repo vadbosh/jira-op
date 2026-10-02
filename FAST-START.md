@@ -26,7 +26,7 @@ The token goes first: `jira init` authenticates while it asks its questions.
 | `what's in the active sprint` | the active sprint created on your board, whatever its dates say |
 | `investigate PROJ-123` | read-only: facts, hypotheses, what could not be checked |
 | `file a ticket: <what you did>` | draft first — nothing is created until you say yes |
-| `weekly report` | writes a `.txt` into the project directory, answers with its path |
+| `weekly report` | writes a `.txt` into `~/wreports`, answers with its path |
 
 ## Filing a ticket
 
@@ -47,12 +47,13 @@ vacation, holidays or sick leave. The window is whole days, the first 00:00 to
 the last 23:59. Work done inside it after the file was written still belongs to
 it — regenerate the file if you have not sent it yet.
 
-It writes a plain-text file into the project directory and answers with the
+It writes a plain-text file into `~/wreports` (created when missing;
+`JIRA_OP_REPORT_DIR` overrides it) and answers with the
 path alone — the content is not printed into the chat, and an existing file is
 never overwritten (a second run writes `-2`):
 
 ```
-weekly-update-2026-08-31_2026-09-06.txt
+~/wreports/weekly-update-OP-a-engineer-2026-08-31_2026-09-06.txt
 ```
 
 Shape: [docs/example-weekly-update.txt](docs/example-weekly-update.txt). It

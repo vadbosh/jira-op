@@ -169,7 +169,7 @@ silently truncates a normal week.
 
 For a ticket that runs across several weeks, the week's delta comes from its
 changelog — see section 3c. Do not build the report on the previous report
-file: it is an ordinary file in a working directory and may not be there.
+file: it is an ordinary file, and files get deleted.
 
 **The delta of every ticket comes from one command**, which runs the listings
 above and the reads of section 3c for the whole window:
@@ -234,28 +234,40 @@ about it in the report.
 
 ## 3. Where the report goes
 
-**A file in the project working directory, and only its path in the reply.**
+**A file in one reports directory, and only its full path in the reply.** The
+path comes from the script, never typed by hand:
+
+```bash
+F="$(scripts/week-delta.sh --path "$WEEK_START" "$WEEK_END")"   # write the report to "$F"
+```
 
 ```
-./weekly-update-<WEEK_START>_<WEEK_END>.txt      e.g. weekly-update-2026-08-31_2026-09-06.txt
+~/wreports/weekly-update-<PROJECT>-<engineer>-<WEEK_START>_<WEEK_END>.txt
+e.g.  ~/wreports/weekly-update-OP-vad-v-bosh-2026-09-25_2026-10-01.txt
 ```
 
-That is the project directory the assistant was started in — `pwd` at the
-start of the session. Do not choose another, do not create a folder for it, do
-not put it in a temporary directory, and never write it under `~/.claude`,
-`~/.codex` or `~/.config/opencode`: those hold the skill, not the work.
+- **The directory** is `~/wreports` by default, created when missing.
+  `JIRA_OP_REPORT_DIR` overrides it. One directory for every report, whatever
+  project the session was started in, so the reports are found in one place
+  and survive the working directory being cleaned. The script refuses a
+  directory it cannot write to — ask the person where to write; never fall back
+  to `/tmp`, to the working directory, or to `~/.claude`, `~/.codex` or
+  `~/.config/opencode`, which hold the skill, not the work.
+- **The name** carries the project key and the engineer — the token owner's
+  Jira display name as a slug — so `ls ~/wreports/*-OP-*` or `*-vad-v-bosh-*`
+  finds them, and reports of two sites or two people never collide.
 
 - **Plain text, `.txt`.** No Markdown: no `**bold**`, no backticks, no `#`
   headings, no tables, no bullet characters other than a plain `-`. The section
   markers are emoji, exactly as below, because the destination renders them.
-- **Never overwrite.** The name exists already → write
-  `weekly-update-<WEEK_START>_<WEEK_END>-2.txt`, then `-3`, and say which one
-  was written.
+- **Never overwrite.** When the name exists already, `--path` returns the next
+  free one — `…-2.txt`, then `-3` — and the reply says that a second file was
+  written.
 - **Do not print the report in the reply.** Not the whole thing, not the first
-  lines, not a summary of it. The answer is one line:
+  lines, not a summary of it. The answer is one line, the full path:
 
   ```
-  weekly-update-2026-08-31_2026-09-06.txt
+  /root/wreports/weekly-update-OP-vad-v-bosh-2026-09-25_2026-10-01.txt
   ```
 
   Add at most one short sentence when something needs a decision — a section

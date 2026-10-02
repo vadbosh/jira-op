@@ -175,9 +175,10 @@ It opens one question dialog before reading anything: the period, and whether
 it contained vacation, holidays or sick leave. The period offers the last
 Friday–Thursday and the last Monday–Sunday with their dates written out, plus
 your own first and last day; neither is preselected, because the window is not
-fixed — it covered Monday–Sunday, then Friday–Thursday. Then it **writes a plain-text file in the directory the
-assistant was started in** — `weekly-update-<start>_<end>.txt`. The reply is
-the path; the content is not printed into the chat, and an existing file is
+fixed — it covered Monday–Sunday, then Friday–Thursday. Then it **writes a plain-text file to `~/wreports`** (created when
+missing; `JIRA_OP_REPORT_DIR` overrides it) —
+`weekly-update-<project>-<engineer>-<start>_<end>.txt`, so `ls ~/wreports/*-OP-*`
+finds every report of a project. The reply is the full path; the content is not printed into the chat, and an existing file is
 never overwritten. Nothing is published to Jira or sent anywhere.
 
 The window is whole days — the first day 00:00 to the last day 23:59 — and is
@@ -237,8 +238,8 @@ Stated plainly, because a skill that reads like an integration invites the
 assumption that it is one.
 
 - **It does not publish the weekly report.** No Slack, no email, no Confluence,
-  no comment on a ticket. It writes a text file into the project working
-  directory and hands you the path; where that text goes is your decision and
+  no comment on a ticket. It writes a text file into `~/wreports` and
+  hands you the path; where that text goes is your decision and
   your paste.
 - **It does not write to Jira on its own.** Create, edit, transition and comment
   each wait for approval of that specific change. Approving one create does not

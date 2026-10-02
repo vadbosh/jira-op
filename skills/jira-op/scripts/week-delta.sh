@@ -3,6 +3,14 @@
 # week-delta.sh — everything the reporting window added to the tickets, in full.
 #
 #   week-delta.sh WEEK_START WEEK_END [KEY ...]
+#   week-delta.sh --path WEEK_START WEEK_END
+#
+# --path prints the file the report goes to, and nothing else:
+#   ${JIRA_OP_REPORT_DIR:-$HOME/wreports}/weekly-update-<PROJECT>-<engineer>-<WEEK_START>_<WEEK_END>.txt
+# The directory is created when missing. <engineer> is the token owner's Jira
+# display name in lower case with every run of other characters turned into
+# one dash — the local part of the login when that leaves nothing (a name in
+# Cyrillic). An existing file is never reused: the path then ends in -2, -3 ….
 #
 # WEEK_START and WEEK_END are the first and the last day of the window, both
 # included (YYYY-MM-DD), as the person picked them in step 1 of
@@ -28,7 +36,9 @@ set -euo pipefail
 
 die() { echo "week-delta: $*" >&2; exit 1; }
 
-[ $# -ge 2 ] || die "usage: week-delta.sh WEEK_START WEEK_END [KEY ...]"
+MODE="delta"
+[ "${1:-}" = --path ] && { MODE=path; shift; }
+[ $# -ge 2 ] || die "usage: week-delta.sh [--path] WEEK_START WEEK_END [KEY ...]"
 WEEK_START="$1"; WEEK_END="$2"; shift 2
 for d in "$WEEK_START" "$WEEK_END"; do
 	[[ "$d" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && date -d "$d" >/dev/null 2>&1 \
@@ -59,7 +69,22 @@ SITE="$(cfg_top server)"; LOGIN="$(cfg_top login)"; PROJECT="$(cfg_child project
 [ -n "$SITE" ] && [ -n "$LOGIN" ] && [ -n "$PROJECT" ] || die "server, login or project key missing in $CFG"
 
 api() { curl -sf -u "$LOGIN:$JIRA_API_TOKEN" "$SITE$1"; }
-api /rest/api/3/myself >/dev/null || die "authentication failed for $LOGIN at $SITE"
+MYSELF="$(api /rest/api/3/myself)" || die "authentication failed for $LOGIN at $SITE"
+
+# --- where the report goes -------------------------------------------------------
+if [ "$MODE" = path ]; then
+	DIR="${JIRA_OP_REPORT_DIR:-$HOME/wreports}"
+	mkdir -p "$DIR" 2>/dev/null && [ -w "$DIR" ] \
+		|| die "cannot write to $DIR — set JIRA_OP_REPORT_DIR to a writable directory"
+	slug() { tr '[:upper:]' '[:lower:]' | LC_ALL=C sed 's/[^a-z0-9]\{1,\}/-/g; s/^-//; s/-$//'; }
+	who="$(printf '%s' "$MYSELF" | jq -r '.displayName // ""' | slug)"
+	[ -n "$who" ] || who="$(printf '%s' "${LOGIN%@*}" | slug)"
+	base="$DIR/weekly-update-$PROJECT-$who-${WEEK_START}_$WEEK_END"
+	path="$base.txt"; n=2
+	while [ -e "$path" ]; do path="$base-$n.txt"; n=$((n + 1)); done
+	printf '%s\n' "$path"
+	exit 0
+fi
 
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 
