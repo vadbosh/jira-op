@@ -14,6 +14,9 @@ A write to Jira — create, edit, transition, sprint, comment — happens only a
 2. the message ends with the line `Утверждаешь? (да/нет)` and the turn stops there,
 3. the human types «да».
 
+A delete or a sprint close also needs the draft to name every issue key or sprint id, and
+the command to name them literally: no variables or loops.
+
 Answers in a question dialog — story points, sprint, dates — are not approval.
 `jira-write-guard` (PreToolUse hook, installed by jira-op) refuses a write that skips this
 when it goes through `jira`, `curl`, `wget`, `httpie` or `xh`; its refusal means: print the

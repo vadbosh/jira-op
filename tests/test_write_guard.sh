@@ -91,6 +91,25 @@ expect "cc: another question after the marker" 2 "$CREATE" "$T/second.jsonl"
 cc "$T/bold.jsonl" "u:заведи тикет" $'a:Черновик ...\n\n**Утверждаешь? (да/нет)**' "u:да"
 expect "cc: marker in bold still ends the reply" 0 "$CREATE" "$T/bold.jsonl"
 
+# --- a delete or a sprint close: the approved draft names every target -------------
+cc "$T/del.jsonl" "u:удали дубль" $'a:Удалю OP-1 (дубль OP-7), sprint 42 закрою.\n\nУтверждаешь? (да/нет)' "u:да"
+expect "delete: key named in the draft" 0 "jira issue delete OP-1" "$T/del.jsonl"
+expect "delete: alias rm, key named" 0 "jira issues rm op-1" "$T/del.jsonl"
+expect "delete: key not named (the D3 case)" 2 "jira issue delete OP-2" "$T/del.jsonl"
+expect "delete: one of two keys not named" 2 "jira issue delete OP-1 OP-2" "$T/del.jsonl"
+expect "delete: OP-1 in the draft is not OP-17" 2 "jira issue delete OP-17" "$T/del.jsonl"
+expect "delete: a key in a variable" 2 'jira issue delete $KEY' "$T/del.jsonl"
+expect "delete: a loop" 2 'for k in OP-1; do jira issue delete $k; done' "$T/del.jsonl"
+expect "delete: after another write in the same command" 2 \
+	"jira issue move OP-1 Done; jira issue delete OP-2" "$T/del.jsonl"
+expect "sprint close: id named" 0 "jira sprint close 42" "$T/del.jsonl"
+expect "sprint complete: id not named" 2 "jira sprint complete 43" "$T/del.jsonl"
+expect "HTTP DELETE: key named" 0 'curl -s -X DELETE -u "$E:$T" "$SITE/rest/api/2/issue/OP-1"' "$T/del.jsonl"
+expect "HTTP DELETE: key not named" 2 'curl -sXDELETE "$SITE/rest/api/2/issue/OP-2?deleteSubtasks=true"' "$T/del.jsonl"
+expect "HTTP DELETE: key in a variable" 2 'curl -X DELETE "$SITE/rest/api/2/issue/$K"' "$T/del.jsonl"
+expect "other writes still need no key" 0 "jira issue move OP-5 Done" "$T/del.jsonl"
+expect "delete: no approval at all" 2 "jira issue delete OP-1" -
+
 # --- Codex rollout ----------------------------------------------------------------
 codex "$T/cx.jsonl" "u:заведи тикет" "a:$MARK" "u:утверждаю"
 expect "codex: утверждаю after marker" 0 "$CREATE" "$T/cx.jsonl"

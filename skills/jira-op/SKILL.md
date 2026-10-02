@@ -297,7 +297,9 @@ the issue type".
   `install.sh` wires, refuses a write that skips this when it goes through
   `jira`, `curl`, `wget`, `httpie` or `xh`. A write from a script file or from
   another language (`python3 -c`, `node -e`) is not seen, so never route one
-  that way. Measured 2026-10-01: a
+  that way. A delete or a sprint close passes only when the draft names every
+  issue key or sprint id, and the command names them literally — no
+  variables or loops. Measured 2026-10-01: a
   ticket was filed right after the four field questions were answered, with the
   draft unread behind the dialog — and on this site a ticket cannot be deleted.
 - **Never transition without reading the current status first.** `To Do` →

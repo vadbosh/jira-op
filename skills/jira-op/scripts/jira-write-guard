@@ -16,7 +16,9 @@ An answer picked in a question dialog (AskUserQuestion) is a tool result, not a
 typed message, and never counts: on 2026-10-01 a ticket was created right after
 the four field questions were answered, while the draft sat unread behind the
 dialog. Every write of the same turn after one "да" passes — create, sprint,
-end date, transition, comment.
+end date, transition, comment. A delete or a sprint close (`jira issue delete`,
+`jira sprint close`, HTTP DELETE) passes only when the approved reply names each
+issue key or sprint id it touches, and the command names them literally.
 
 What is a write. For jira-cli, everything except a known read (an allowlist
 taken from `jira --help` of 1.7.0): a new verb or alias is refused until it is
@@ -49,6 +51,14 @@ REASON = (
     "and stop. Run the write only after the human types «да». An answer picked in a question\n"
     "dialog does not count, and neither do answers about story points, sprint or dates."
 )
+DESTRUCTIVE_REASON = (
+    "jira-write-guard: this command deletes an issue or closes a sprint, and the approved\n"
+    "draft does not name {}. A «да» covers a delete or a sprint close only when the draft\n"
+    "names every issue key or sprint id, and the command names them literally — no\n"
+    "variables, no loops. Show a draft that names them, end it with\n"
+    "    Утверждаешь? (да/нет)\n"
+    "and stop."
+)
 
 # --- what counts as a Jira write --------------------------------------------
 
@@ -63,6 +73,9 @@ JIRA_GROUPS = {"issue", "issues", "sprint", "sprints", "epic", "epics", "board",
 JIRA_READ_VERBS = {"list", "lists", "ls", "search", "view", "show"}
 JIRA_VALUE_FLAGS = {"-c", "--config", "-p", "--project"}
 HELP_FLAGS = {"-h", "--help"}
+# Writes no «да» covers blindly: the approved draft must name every target (D3).
+JIRA_DESTRUCTIVE = {("issue", v) for v in ("delete", "remove", "rm", "del")} | \
+                   {("sprint", v) for v in ("close", "complete")}
 
 # Words that start a command without being it.
 SHELL_KEYWORDS = {"if", "then", "else", "elif", "while", "until", "do", "{", "!"}
@@ -216,11 +229,21 @@ def _dash_c(args):
     return None
 
 
-def _jira_is_write(args):
-    """True unless the jira-cli command is a known read."""
+def _targets(words):
+    """The targets a destructive command names; () when one is not literal."""
+    if not words or any(re.search(r"[$`*?{}\[\]<>]", w) for w in words):
+        return ()
+    return tuple(words)
+
+
+def _jira_verdict(args):
+    """(write, destructive) for jira-cli; a write unless it is a known read.
+
+    destructive is None, or the targets of a delete or a sprint close.
+    """
     before_dashes = args[:args.index("--")] if "--" in args else args
     if HELP_FLAGS & set(before_dashes):
-        return False  # `jira issue create --help` prints usage
+        return False, None  # `jira issue create --help` prints usage
     pos, k = [], 0
     while k < len(args):
         w = args[k]
@@ -231,20 +254,34 @@ def _jira_is_write(args):
             pos.append(w)
         k += 1
     if not pos or pos[0] in JIRA_READ_TOP:
-        return False
-    if pos[0] in JIRA_GROUPS:
-        return len(pos) > 1 and pos[1] not in JIRA_READ_VERBS
-    return True
+        return False, None
+    if pos[0] not in JIRA_GROUPS:
+        return True, None
+    if len(pos) < 2 or pos[1] in JIRA_READ_VERBS:
+        return False, None
+    if (pos[0].rstrip("s"), pos[1]) in JIRA_DESTRUCTIVE:
+        return True, _targets(pos[2:])
+    return True, None
 
 
 def _next(args, k):
     return args[k + 1] if k + 1 < len(args) else ""
 
 
-def _http_is_write(prog, args):
+def _http_verdict(prog, args):
+    """(write, destructive) for an HTTP client; destructive is set for DELETE."""
     urls = [w for w in args if JIRA_URL.search(w)]
     if not urls:
-        return False
+        return False, None
+    write = _http_is_write(prog, args, urls)
+    if write == "DELETE":
+        last = [re.split(r"[?#]", u)[0].rstrip("/").rsplit("/", 1)[-1] for u in urls]
+        return True, _targets(last)
+    return bool(write), None
+
+
+def _http_is_write(prog, args, urls):
+    """False, True, or "DELETE"."""
     method, body = None, False
     if prog == "curl":
         for k, w in enumerate(args):
@@ -291,6 +328,8 @@ def _http_is_write(prog, args):
             method = pos.pop(0).upper()
         if any(HTTPIE_ITEM.match(w) for w in pos[1:]):
             body = True
+    if method == "DELETE":
+        return "DELETE"
     if method in WRITE_METHODS:
         return True
     if method in READ_METHODS:
@@ -300,35 +339,56 @@ def _http_is_write(prog, args):
     return method == "POST" or body
 
 
-def is_jira_write(cmd, depth=0):
+def _scan(cmd, depth, destructive):
+    """True if cmd writes to Jira. Every segment is read, not only up to the
+    first write: the targets of each delete or sprint close go to destructive."""
     if not MENTION.search(cmd):
         return False
     cmd = _strip_heredocs(cmd)
     cmd = re.sub(r"\\\r?\n", " ", cmd)  # a `\`-continued line is one command
-    if depth < MAX_DEPTH and any(is_jira_write(s, depth + 1) for s in _substitutions(cmd)):
-        return True
+    write = False
+    if depth < MAX_DEPTH:
+        for sub in _substitutions(cmd):
+            write |= _scan(sub, depth + 1, destructive)
     try:
         segments = _segments(cmd)
     except ValueError:
         # Unparsable quoting: the segments cannot be trusted, so any mention of
         # Jira counts as a write rather than judging the first word alone.
-        return bool(MENTION.search(cmd))
+        if not MENTION.search(cmd):
+            return write
+        if re.search(r"\b(?:delete|del|rm|remove|close|complete)\b", cmd, re.I):
+            destructive.append(())
+        return True
     for seg in segments:
         words = _strip_prefix(seg)
         if not words:
             continue
         prog = words[0].rsplit("/", 1)[-1]
+        verdict = (False, None)
         if prog in SHELLS:
             script = _dash_c(words[1:])
-            if script is not None and depth < MAX_DEPTH and is_jira_write(script, depth + 1):
-                return True
+            if script is not None and depth < MAX_DEPTH:
+                write |= _scan(script, depth + 1, destructive)
         elif prog == "jira":
-            if _jira_is_write(words[1:]):
-                return True
+            verdict = _jira_verdict(words[1:])
         elif prog in HTTP_CLIENTS:
-            if _http_is_write(prog, words[1:]):
-                return True
-    return False
+            verdict = _http_verdict(prog, words[1:])
+        write |= verdict[0]
+        if verdict[1] is not None:
+            destructive.append(verdict[1])
+    return write
+
+
+def classify(cmd):
+    """(write, destructive): destructive holds, per delete or sprint close, the
+    targets it names — () when a target is a variable or otherwise not literal."""
+    destructive = []
+    return _scan(cmd, 0, destructive), destructive
+
+
+def is_jira_write(cmd):
+    return classify(cmd)[0]
 
 
 # --- reading the conversation -----------------------------------------------
@@ -392,23 +452,39 @@ def _norm(text):
 
 
 def approved(events):
+    return approved_reply(events) is not None
+
+
+def approved_reply(events):
+    """The reply the human approved with a typed «да», or None."""
     def lead(t):
         return t.strip().lower()
 
     typed = [i for i, (r, t) in enumerate(events)
              if r == "user" and t.strip() and not lead(t).startswith(SKIP_PREFIXES)]
     if not typed:
-        return False
+        return None
     last = typed[-1]
     if _norm(events[last][1]) not in APPROVALS:
-        return False
+        return None
     prev = max((i for i in range(last) if events[i][0] == "user" and
                 (i in typed or lead(events[i][1]).startswith(BOUNDARY_PREFIXES))), default=-1)
     replies = [t for r, t in events[prev + 1:last] if r == "assistant" and t.strip()]
     if not replies:
-        return False
+        return None
     tail = replies[-1].rstrip().rstrip("*_`").rstrip().lower()
-    return tail.endswith(MARKERS)
+    return replies[-1] if tail.endswith(MARKERS) else None
+
+
+def unnamed(destructive, reply):
+    """Targets of a delete or sprint close that the approved reply does not name."""
+    missing = []
+    for targets in destructive:
+        if not targets:
+            missing.append("(a target given by a variable, a loop or a pattern)")
+        missing += [t for t in targets
+                    if not re.search(r"(?<![\w-])" + re.escape(t) + r"(?![\w-])", reply, re.I)]
+    return missing
 
 
 def _events(payload):
@@ -434,12 +510,20 @@ def main():
     cmd = ti.get("command") if isinstance(ti, dict) else ti
     if not isinstance(cmd, str):
         return 0
+    reason = REASON
     try:
-        if not is_jira_write(cmd) or approved(_events(payload)):
+        write, destructive = classify(cmd)
+        if not write:
             return 0
+        reply = approved_reply(_events(payload))
+        if reply is not None:
+            missing = unnamed(destructive, reply)
+            if not missing:
+                return 0
+            reason = DESTRUCTIVE_REASON.format(", ".join(missing))
     except Exception:  # noqa: BLE001 — a guard that fails on a write refuses it
         pass
-    print(REASON, file=sys.stderr)
+    print(reason, file=sys.stderr)
     return 2
 
 
