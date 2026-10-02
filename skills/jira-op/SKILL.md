@@ -237,6 +237,24 @@ publish a Russian field and translate afterwards.
   by date window — the team's own sprint may have an end date in the past, and
   a foreign one may cover today. Confirm the name with the user before adding.
 
+## Questions go through the question tool
+
+Every question with answers to pick — the weekly window and the absence
+(`references/weekly-report.md`, step 1), story points, sprint and End Date
+(`references/create-task.md`, step 0), an issue type, a field option — is asked
+in the assistant's question tool, all questions of a step in one dialog with
+one submit: `AskUserQuestion` in Claude Code, `question` in Opencode,
+`request_user_input` in Codex when it is listed for the turn. No such tool —
+the same questions in one message, options numbered, answerable in one line.
+
+Two things never go into the tool:
+
+- **the approval of a draft.** «да» is typed; an answer picked in a dialog is
+  not approval, and `jira-write-guard` does not accept it;
+- **a value that has no default** offered as one. An option is never marked
+  recommended when the step says the value is not guessed — the reporting
+  window, story points.
+
 ## Which issue type a create uses
 
 `<ISSUE_TYPE>` from the site file. The user sets it once per site, as
@@ -287,6 +305,10 @@ the issue type".
   and every field the assistant filled in, including risks and acceptance
   criteria — then wait. A field nobody read is a field nobody agreed to, and a
   ticket cloned from another one hides its rewrite behind "same as PROJ-123".
+  **No draft, no ticket — every time, a clone and an epic included.** The draft
+  uses the layout of `references/create-task.md`, step 2: `jira-write-guard`
+  refuses a create whose approved reply has no `Summary:` and `Description:`
+  lines, or whose summary differs from the one the command sends.
 - **Never write before a typed «да».** Every write — create, edit, transition,
   sprint, comment — is preceded by a message that shows the draft (or the
   before/after of the change) and ends with the line `Утверждаешь? (да/нет)`

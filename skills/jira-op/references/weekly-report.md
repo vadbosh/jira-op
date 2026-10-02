@@ -13,18 +13,41 @@ Friday–Thursday, and it can move again. A window computed from the weekday
 report is quietly wrong. Sprints on this board are dynamic and do not align to
 the window either — the sprint name only labels the report.
 
-Ask the user to enter it — first and last day, both included — and wait for
-the answer. Do not propose a window: previous report files are not kept, so
-there is nothing to continue from, and a guess from the calendar is exactly
-what this step exists to avoid. Give today's date so the answer is easy:
+Ask in the question tool (SKILL.md, "Questions go through the question
+tool"), in **one** dialog with two questions — the window and the absence of
+step 1a — and wait for the answer. Compute the two calendar windows the report
+has used, so the person picks instead of typing:
 
 ```bash
 date '+%F (%a)'
+u=$(date +%u)                                    # Mon=1 … Sun=7
+THU=$(date -d "-$(( (u + 3) % 7 )) days" +%F)    # last Thursday, today included
+SUN=$(date -d "-$(( u % 7 )) days" +%F)          # last Sunday, today included
+date -d "$THU -6 days" '+%F (%a)'; date -d "$SUN -6 days" '+%F (%a)'
 ```
 
 ```
-Today is 2026-09-23 (Wed). Which period is this report for? First and last day, both included.
+Window — today 2026-10-02 (Fri). Which period is this report for?
+  ○ 2026-09-25 (Fri) – 2026-10-01 (Thu)
+  ○ 2026-09-21 (Mon) – 2026-09-27 (Sun)
+  ✎ other: first and last day, both included
+Absence — was any of it a day off? (several allowed)
+  ○ None
+  ○ Vacation
+  ○ Public holiday
+  ○ Sick leave
+  ✎ the dates of the absence
 ```
+
+- **Neither window is marked recommended and neither is preselected.** The
+  window has already moved once; a default turns this step back into the
+  guess from the calendar it exists to prevent. Each label carries both dates
+  and their weekdays, so the person reads what they pick.
+- The free-text answer is the person's own window. One that cannot be read as
+  two dates, or names a last day before the first — ask again; never repair it.
+- An absence picked without dates — ask for the dates before reading anything.
+- No question tool in this turn — the same two questions in one message, the
+  options numbered, answerable in one line: «1, 1» or «2026-09-26 – 2026-10-02, 1».
 
 Then fix it from the answer, never from the weekday:
 
@@ -66,9 +89,9 @@ days later than it feels.
 
 ## 1a. Was the person there?
 
-Before reading anything into an empty week, ask whether the window includes
-vacation, public holidays or sick leave. An absence is not a delivery problem
-and must never be written up as a risk.
+Vacation, public holidays and sick leave are asked in the step 1 dialog,
+before anything is read: an empty week means nothing until the answer is in.
+An absence is not a delivery problem and must never be written up as a risk.
 
 An absent week gets one line under **What Went Well** — `Vacation from
 <date> to <date>; no engineering activity planned or expected.` — and

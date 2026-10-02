@@ -14,8 +14,14 @@ A write to Jira — create, edit, transition, sprint, comment — happens only a
 2. the message ends with the line `Утверждаешь? (да/нет)` and the turn stops there,
 3. the human types «да».
 
-A delete or a sprint close also needs the draft to name every issue key or sprint id, and
+**No ticket without a draft, ever** — a clone and an epic included. The draft has the
+`Summary:` and `Description:` lines and the summary exactly as the create sends it. A
+delete or a sprint close also needs the draft to name every issue key or sprint id, and
 the command to name them literally: no variables or loops.
+
+Questions with answers to pick — the weekly report's period and absence, story points,
+sprint, End Date — go through the question tool in one dialog (`AskUserQuestion`,
+`question`, `request_user_input`), never as prose. The approval «да» is never one of them.
 
 Answers in a question dialog — story points, sprint, dates — are not approval.
 `jira-write-guard` (PreToolUse hook, installed by jira-op) refuses a write that skips this

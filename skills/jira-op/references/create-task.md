@@ -126,8 +126,11 @@ four facts is read as none. And a detail in the title goes stale the moment the
 work changes — three clusters become four, and the title now lies while the
 description is still right.
 
-**0. Ask three questions before drafting.** All three in one go, and none of
-them guessed:
+**0. Ask three questions before drafting.** All three in one question dialog
+with one submit (SKILL.md, "Questions go through the question tool"), and none
+of them guessed — no option is marked recommended for the points, the sprint
+read live in step 3 is offered by name and id, and `none` is an option for End
+Date. The draft comes in the next message, never in the same one as the dialog:
 
 | Ask | Why it cannot be defaulted |
 |---|---|

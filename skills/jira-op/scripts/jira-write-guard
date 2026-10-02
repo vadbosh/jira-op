@@ -18,7 +18,11 @@ the four field questions were answered, while the draft sat unread behind the
 dialog. Every write of the same turn after one "да" passes — create, sprint,
 end date, transition, comment. A delete or a sprint close (`jira issue delete`,
 `jira sprint close`, HTTP DELETE) passes only when the approved reply names each
-issue key or sprint id it touches, and the command names them literally.
+issue key or sprint id it touches, and the command names them literally. A
+create (`jira issue create|clone`, `jira epic create`, a write to
+/rest/api/<v>/issue) passes only when the approved reply is its draft: it has
+the `Summary:` and `Description:` lines, and the summary the command sends —
+from `-s`, a JSON body, an `@file` or `jq --arg summary` — is in it.
 
 What is a write. For jira-cli, everything except a known read (an allowlist
 taken from `jira --help` of 1.7.0): a new verb or alias is refused until it is
@@ -37,6 +41,7 @@ assistant shows to the model. A write with no readable conversation is refused,
 and so is a write the guard fails on: it does not wave writes through blind.
 """
 import json
+import os
 import re
 import shlex
 import sys
@@ -50,6 +55,14 @@ REASON = (
     "    Утверждаешь? (да/нет)\n"
     "and stop. Run the write only after the human types «да». An answer picked in a question\n"
     "dialog does not count, and neither do answers about story points, sprint or dates."
+)
+DRAFT_REASON = (
+    "jira-write-guard: this command creates a ticket, and the approved reply is not its\n"
+    "draft: {}. Print the whole draft — Summary, Type, Sprint, Points, End Date,\n"
+    "Description, Potential Risks, Acceptance Test — with the summary exactly as the\n"
+    "command sends it, end the message with\n"
+    "    Утверждаешь? (да/нет)\n"
+    "and stop. No ticket is created without a draft the human has read."
 )
 DESTRUCTIVE_REASON = (
     "jira-write-guard: this command deletes an issue or closes a sprint, and the approved\n"
@@ -76,6 +89,11 @@ HELP_FLAGS = {"-h", "--help"}
 # Writes no «да» covers blindly: the approved draft must name every target (D3).
 JIRA_DESTRUCTIVE = {("issue", v) for v in ("delete", "remove", "rm", "del")} | \
                    {("sprint", v) for v in ("close", "complete")}
+# Writes that make a new ticket: the approved reply must be its draft.
+JIRA_CREATE = {("issue", "create"), ("issue", "clone"), ("epic", "create")}
+CREATE_URL = re.compile(r"/rest/api/[^/]+/issue(?:/bulk)?/?(?:[?#]|$)", re.I)
+DRAFT_LABELS = (re.compile(r"(?im)^[\s>*_`#-]*(?:summary|заголовок)[*_`]*\s*:"),
+                re.compile(r"(?im)^[\s>*_`#-]*(?:description|описание)[*_`]*\s*:"))
 
 # Words that start a command without being it.
 SHELL_KEYWORDS = {"if", "then", "else", "elif", "while", "until", "do", "{", "!"}
@@ -236,14 +254,26 @@ def _targets(words):
     return tuple(words)
 
 
-def _jira_verdict(args):
-    """(write, destructive) for jira-cli; a write unless it is a known read.
+def _flag_value(args, short, long):
+    for k, w in enumerate(args):
+        if w in (short, long):
+            return args[k + 1] if k + 1 < len(args) else None
+        if w.startswith(long + "="):
+            return w[len(long) + 1:]
+        if w.startswith(short) and not w.startswith("--") and len(w) > len(short):
+            return w[len(short):]
+    return None
 
-    destructive is None, or the targets of a delete or a sprint close.
+
+def _jira_verdict(args):
+    """(write, destructive, create) for jira-cli; a write unless a known read.
+
+    destructive is None, or the targets of a delete or a sprint close. create
+    is None, or (summary, False) for a command that makes a ticket.
     """
     before_dashes = args[:args.index("--")] if "--" in args else args
     if HELP_FLAGS & set(before_dashes):
-        return False, None  # `jira issue create --help` prints usage
+        return False, None, None  # `jira issue create --help` prints usage
     pos, k = [], 0
     while k < len(args):
         w = args[k]
@@ -254,14 +284,53 @@ def _jira_verdict(args):
             pos.append(w)
         k += 1
     if not pos or pos[0] in JIRA_READ_TOP:
-        return False, None
+        return False, None, None
     if pos[0] not in JIRA_GROUPS:
-        return True, None
+        return True, None, None
     if len(pos) < 2 or pos[1] in JIRA_READ_VERBS:
-        return False, None
-    if (pos[0].rstrip("s"), pos[1]) in JIRA_DESTRUCTIVE:
-        return True, _targets(pos[2:])
-    return True, None
+        return False, None, None
+    action = (pos[0].rstrip("s"), pos[1])
+    if action in JIRA_DESTRUCTIVE:
+        return True, _targets(pos[2:]), None
+    if action in JIRA_CREATE:
+        return True, None, (_flag_value(args, "-s", "--summary"), False)
+    return True, None, None
+
+
+def _body_summary(prog, args):
+    """(summary, from_file) of a REST create's body, or (None, False)."""
+    if prog in ("http", "https", "xh", "xhs"):
+        for w in args:
+            if w.startswith("summary="):
+                return w[len("summary="):], False
+        return None, False
+    body = None
+    for k, w in enumerate(args):
+        name, eq, val = w.partition("=")
+        if name in ("-d", "--data", "--data-raw", "--data-binary", "--data-ascii", "--json",
+                    "--post-data", "--body-data", "--post-file", "--body-file"):
+            body = val if eq else _next(args, k)
+            if name in ("--post-file", "--body-file"):
+                body = "@" + body
+        elif w.startswith("-d") and not w.startswith("--") and len(w) > 2:
+            body = w[2:]
+    if not body:
+        return None, False
+    from_file = body.startswith("@")
+    if from_file:
+        path = os.path.expanduser(body[1:])
+        if body[1:] in ("", "-") or not os.path.isfile(path):
+            return None, True
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            body = fh.read(1 << 20)
+    try:
+        doc = json.loads(body)
+    except ValueError:
+        return None, from_file
+    fields = (doc.get("fields") or (doc.get("issueUpdates") or [{}])[0].get("fields")
+              if isinstance(doc, dict) else None)
+    s = fields.get("summary") if isinstance(fields, dict) else None
+    return (s if isinstance(s, str) else None), from_file
 
 
 def _next(args, k):
@@ -269,15 +338,18 @@ def _next(args, k):
 
 
 def _http_verdict(prog, args):
-    """(write, destructive) for an HTTP client; destructive is set for DELETE."""
+    """(write, destructive, create) for an HTTP client: destructive is set for
+    DELETE, create for a write to /rest/api/<v>/issue."""
     urls = [w for w in args if JIRA_URL.search(w)]
     if not urls:
-        return False, None
+        return False, None, None
     write = _http_is_write(prog, args, urls)
     if write == "DELETE":
         last = [re.split(r"[?#]", u)[0].rstrip("/").rsplit("/", 1)[-1] for u in urls]
-        return True, _targets(last)
-    return bool(write), None
+        return True, _targets(last), None
+    if write and any(CREATE_URL.search(u) for u in urls):
+        return True, None, _body_summary(prog, args)
+    return bool(write), None, None
 
 
 def _http_is_write(prog, args, urls):
@@ -339,9 +411,11 @@ def _http_is_write(prog, args, urls):
     return method == "POST" or body
 
 
-def _scan(cmd, depth, destructive):
+def _scan(cmd, depth, ctx):
     """True if cmd writes to Jira. Every segment is read, not only up to the
-    first write: the targets of each delete or sprint close go to destructive."""
+    first write: ctx collects the targets of each delete or sprint close, the
+    summary of each create, and a `jq --arg summary` that builds a create body."""
+    destructive = ctx["destructive"]
     if not MENTION.search(cmd):
         return False
     cmd = _strip_heredocs(cmd)
@@ -349,7 +423,7 @@ def _scan(cmd, depth, destructive):
     write = False
     if depth < MAX_DEPTH:
         for sub in _substitutions(cmd):
-            write |= _scan(sub, depth + 1, destructive)
+            write |= _scan(sub, depth + 1, ctx)
     try:
         segments = _segments(cmd)
     except ValueError:
@@ -359,32 +433,57 @@ def _scan(cmd, depth, destructive):
             return write
         if re.search(r"\b(?:delete|del|rm|remove|close|complete)\b", cmd, re.I):
             destructive.append(())
+        if re.search(r"\b(?:create|clone)\b|/issue\b", cmd, re.I):
+            ctx["creates"].append((None, False))
         return True
     for seg in segments:
         words = _strip_prefix(seg)
         if not words:
             continue
         prog = words[0].rsplit("/", 1)[-1]
-        verdict = (False, None)
+        verdict = (False, None, None)
         if prog in SHELLS:
             script = _dash_c(words[1:])
             if script is not None and depth < MAX_DEPTH:
-                write |= _scan(script, depth + 1, destructive)
+                write |= _scan(script, depth + 1, ctx)
         elif prog == "jira":
             verdict = _jira_verdict(words[1:])
         elif prog in HTTP_CLIENTS:
             verdict = _http_verdict(prog, words[1:])
+        elif prog == "jq":
+            s = _jq_arg(words[1:], "summary")
+            if s is not None:
+                ctx["jq_summary"] = s
         write |= verdict[0]
         if verdict[1] is not None:
             destructive.append(verdict[1])
+        if verdict[2] is not None:
+            ctx["creates"].append(verdict[2])
     return write
 
 
+def _jq_arg(args, name):
+    for k in range(len(args) - 2):
+        if args[k] == "--arg" and args[k + 1] == name:
+            return args[k + 2]
+    return None
+
+
 def classify(cmd):
-    """(write, destructive): destructive holds, per delete or sprint close, the
-    targets it names — () when a target is a variable or otherwise not literal."""
-    destructive = []
-    return _scan(cmd, 0, destructive), destructive
+    """(write, destructive, creates).
+
+    destructive holds, per delete or sprint close, the targets it names — ()
+    when a target is a variable or otherwise not literal. creates holds, per
+    command that makes a ticket, the summary it sends, or None when the guard
+    cannot see it.
+    """
+    ctx = {"destructive": [], "creates": [], "jq_summary": None}
+    write = _scan(cmd, 0, ctx)
+    # A body file written by jq in the same command does not exist yet, or is
+    # the previous one: the jq argument is what will be sent.
+    creates = [ctx["jq_summary"] if ctx["jq_summary"] is not None and (s is None or from_file)
+               else s for s, from_file in ctx["creates"]]
+    return write, ctx["destructive"], creates
 
 
 def is_jira_write(cmd):
@@ -476,6 +575,23 @@ def approved_reply(events):
     return replies[-1] if tail.endswith(MARKERS) else None
 
 
+def _flat(text):
+    return " ".join(text.split()).casefold()
+
+
+def undrafted(creates, reply):
+    """Why the approved reply is not the draft of the tickets being created."""
+    if not creates:
+        return []
+    problems = []
+    if not all(p.search(reply) for p in DRAFT_LABELS):
+        problems.append("it has no Summary: and Description: lines")
+    for s in creates:
+        if s is not None and not re.search(r"[$`<]", s) and _flat(s) not in _flat(reply):
+            problems.append(f"the summary «{s}» that the command sends is not in it")
+    return problems
+
+
 def unnamed(destructive, reply):
     """Targets of a delete or sprint close that the approved reply does not name."""
     missing = []
@@ -512,15 +628,17 @@ def main():
         return 0
     reason = REASON
     try:
-        write, destructive = classify(cmd)
+        write, destructive, creates = classify(cmd)
         if not write:
             return 0
         reply = approved_reply(_events(payload))
         if reply is not None:
+            problems = undrafted(creates, reply)
             missing = unnamed(destructive, reply)
-            if not missing:
+            if not problems and not missing:
                 return 0
-            reason = DESTRUCTIVE_REASON.format(", ".join(missing))
+            reason = (DRAFT_REASON.format("; ".join(problems)) if problems
+                      else DESTRUCTIVE_REASON.format(", ".join(missing)))
     except Exception:  # noqa: BLE001 — a guard that fails on a write refuses it
         pass
     print(reason, file=sys.stderr)

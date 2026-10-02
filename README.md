@@ -93,9 +93,11 @@ does not count. It sees writes made with `jira` and with `curl`, `wget`,
 `httpie` or `xh` aimed at the Jira REST API, also inside loops, `$( )` and
 `sh -c`; a `jira` command it does not know as a read counts as a write. It does
 not see a write made from a script file or another language (`python3 -c`,
-`node -e`). A delete or a sprint close passes only when the approved draft
-names every issue key or sprint id it touches. The **jira-trigger** rule makes the assistant load this skill
-for every Jira task instead of working from memory. That part needs `python3`;
+`node -e`). A ticket is never created without a draft: the approved reply must
+carry its `Summary:` and `Description:`, with the summary the command sends. A
+delete or a sprint close passes only when the approved draft names every issue
+key or sprint id it touches. The **jira-trigger** rule makes the assistant
+load this skill for every Jira task instead of working from memory. That part needs `python3`;
 its tests are `tests/test_write_guard.sh`.
 
 `install.sh` is a bash script — **Linux and macOS**, or WSL / Git Bash on
@@ -168,10 +170,11 @@ weekly report
 weekly report for last week
 ```
 
-It asks you to enter the period — first and last day — because the window is
-not fixed: it covered Monday–Sunday, then Friday–Thursday. Nothing is proposed
-or computed from the weekday. Then it asks whether the window contained
-vacation or holidays, and **writes a plain-text file in the directory the
+It opens one question dialog before reading anything: the period, and whether
+it contained vacation, holidays or sick leave. The period offers the last
+Friday–Thursday and the last Monday–Sunday with their dates written out, plus
+your own first and last day; neither is preselected, because the window is not
+fixed — it covered Monday–Sunday, then Friday–Thursday. Then it **writes a plain-text file in the directory the
 assistant was started in** — `weekly-update-<start>_<end>.txt`. The reply is
 the path; the content is not printed into the chat, and an existing file is
 never overwritten. Nothing is published to Jira or sent anywhere.

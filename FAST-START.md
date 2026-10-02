@@ -41,9 +41,11 @@ most accounts, so there are no test tickets.
 
 ## Weekly report
 
-Calendar week, Monday 00:00 to Sunday 23:59; run it Friday evening or Saturday
-morning. You are asked whether the window contained vacation. Weekend work
-still belongs to that week — regenerate the file if you have not sent it yet.
+One dialog first: pick the period — the last Friday–Thursday, the last
+Monday–Sunday, or your own first and last day — and say whether it contained
+vacation, holidays or sick leave. The window is whole days, the first 00:00 to
+the last 23:59. Work done inside it after the file was written still belongs to
+it — regenerate the file if you have not sent it yet.
 
 It writes a plain-text file into the project directory and answers with the
 path alone — the content is not printed into the chat, and an existing file is

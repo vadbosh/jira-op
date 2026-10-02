@@ -9,7 +9,8 @@ QUIET=0; [ "${1:-}" = "-q" ] && QUIET=1
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 pass=0; fail=0
 
-MARK='Черновик: Summary: X ... Утверждаешь? (да/нет)'
+DRAFT=$'Summary:      Fix the build\nType:         Task\n\nDescription:\nWhat was done.\n\n'
+MARK="${DRAFT}Утверждаешь? (да/нет)"
 
 # --- transcript builders -----------------------------------------------------
 cc() {  # cc <file> <kind:text> ... ; kinds: u=typed user, a=assistant text, q=dialog answer (tool_result)
@@ -59,7 +60,8 @@ tally() {  # tally <name> <want> <got>
 	fi
 }
 
-CREATE='curl -s -X POST -u "$E:$T" -H "Content-Type: application/json" --data-binary @/tmp/op.json https://x.atlassian.net/rest/api/2/issue'
+jq -n '{fields:{summary:"Fix the build"}}' >"$T/op.json"
+CREATE="curl -s -X POST -u a:b -H 'Content-Type: application/json' --data-binary @$T/op.json https://x.atlassian.net/rest/api/2/issue"
 
 # --- approval logic, Claude Code transcript -----------------------------------
 cc "$T/ok.jsonl" "u:заведи тикет" "a:$MARK" "u:да"
@@ -76,7 +78,7 @@ cc "$T/stale.jsonl" "u:заведи тикет" "a:$MARK" "u:да" "a:созда
 expect "cc: earlier да does not carry over" 2 "$CREATE" "$T/stale.jsonl"
 cc "$T/oldmark.jsonl" "u:t" "a:$MARK" "u:нет" "a:ок, правлю" "u:да"
 expect "cc: marker must be in the reply before the да" 2 "$CREATE" "$T/oldmark.jsonl"
-cc "$T/en.jsonl" "u:file it" "a:Summary: X ... Approve? (yes/no)" "u:yes"
+cc "$T/en.jsonl" "u:file it" "a:${DRAFT}Approve? (yes/no)" "u:yes"
 expect "cc: English marker and yes" 0 "$CREATE" "$T/en.jsonl"
 cc "$T/slash.jsonl" "u:заведи тикет" "a:$MARK" "u:<command-name>/compact</command-name>" "a:контекст сжат" "u:да"
 expect "cc: a slash command closes the draft's window" 2 "$CREATE" "$T/slash.jsonl"
@@ -88,8 +90,33 @@ cc "$T/quoted.jsonl" "u:как работает guard?" "a:Он ждёт стр�
 expect "cc: marker quoted mid-reply is not the question" 2 "$CREATE" "$T/quoted.jsonl"
 cc "$T/second.jsonl" "u:заведи тикет" "a:$MARK"$'\n\nИ ещё: ставить в спринт?' "u:да"
 expect "cc: another question after the marker" 2 "$CREATE" "$T/second.jsonl"
-cc "$T/bold.jsonl" "u:заведи тикет" $'a:Черновик ...\n\n**Утверждаешь? (да/нет)**' "u:да"
+cc "$T/bold.jsonl" "u:заведи тикет" "a:${DRAFT}**Утверждаешь? (да/нет)**" "u:да"
 expect "cc: marker in bold still ends the reply" 0 "$CREATE" "$T/bold.jsonl"
+
+# --- a create: the approved reply is its draft -------------------------------------
+cc "$T/nodraft.jsonl" "u:заведи тикет" "a:Тикет готов. Утверждаешь? (да/нет)" "u:да"
+expect "create: marker with no draft" 2 "$CREATE" "$T/nodraft.jsonl"
+expect "create: jira-cli, marker with no draft" 2 "jira issue create -pOP -s'Fix the build' --no-input" "$T/nodraft.jsonl"
+expect "other writes need no draft" 0 "jira issue move OP-5 Done" "$T/nodraft.jsonl"
+expect "create: jira-cli -s matches the draft" 0 "jira issue create -pOP -tTask -s'Fix the build' --no-input" "$T/ok.jsonl"
+expect "create: jira-cli glued -s, other case and spacing" 0 "jira issue create -pOP -s'fix  the BUILD'" "$T/ok.jsonl"
+expect "create: jira-cli --summary= differs from the draft" 2 "jira issue create -pOP --summary='Fix the tests'" "$T/ok.jsonl"
+expect "create: epic create, summary differs" 2 "jira epic create -pOP -n E -s'Other'" "$T/ok.jsonl"
+expect "create: clone without -s, draft shown" 0 "jira issue clone OP-1" "$T/ok.jsonl"
+expect "create: clone without a draft" 2 "jira issue clone OP-1" "$T/nodraft.jsonl"
+jq -n '{fields:{summary:"Fix the tests"}}' >"$T/other.json"
+expect "create: body file sends another summary" 2 \
+	"curl -s -X POST --data-binary @$T/other.json \"\$SITE/rest/api/2/issue\"" "$T/ok.jsonl"
+expect "create: inline JSON body matches" 0 \
+	"curl -s -X POST -d '{\"fields\":{\"summary\":\"Fix the build\"}}' \"\$SITE/rest/api/2/issue\"" "$T/ok.jsonl"
+expect "create: jq --arg in the same command wins over a stale file" 0 \
+	"jq -n --arg summary 'Fix the build' '{fields:{summary:\$summary}}' > $T/other.json && curl -s -X POST --data-binary @$T/other.json \"\$SITE/rest/api/2/issue\"" "$T/ok.jsonl"
+expect "create: jq --arg differs from the draft" 2 \
+	"jq -n --arg summary 'Fix the tests' '{}' > $T/n.json && curl -s -X POST --data-binary @$T/n.json \"\$SITE/rest/api/2/issue\"" "$T/ok.jsonl"
+expect "create: body file not there yet, draft shown" 0 \
+	"curl -s -X POST --data-binary @$T/missing.json \"\$SITE/rest/api/2/issue\"" "$T/ok.jsonl"
+expect "create: a comment is not a create" 0 \
+	"curl -s -X POST -d '{\"body\":\"x\"}' \"\$SITE/rest/api/2/issue/OP-1/comment\"" "$T/nodraft.jsonl"
 
 # --- a delete or a sprint close: the approved draft names every target -------------
 cc "$T/del.jsonl" "u:удали дубль" $'a:Удалю OP-1 (дубль OP-7), sprint 42 закрою.\n\nУтверждаешь? (да/нет)' "u:да"
@@ -118,6 +145,8 @@ expect "codex: injected AGENTS.md line is not a human да" 2 "$CREATE" "$T/cx2.
 
 # --- Opencode messages ------------------------------------------------------------
 expect "opencode: messages, да" 0 "jira issue create -pOP" - \
+	"$(jq -cn --arg d "$MARK" '[{role:"user",text:"заведи"},{role:"assistant",text:$d},{role:"user",text:"да"}]')"
+expect "opencode: messages, да without a draft" 2 "jira issue create -pOP" - \
 	'[{"role":"user","text":"заведи"},{"role":"assistant","text":"Утверждаешь? (да/нет)"},{"role":"user","text":"да"}]'
 expect "opencode: messages, no approval" 2 "jira issue create -pOP" - \
 	'[{"role":"user","text":"заведи"},{"role":"assistant","text":"черновик"}]'
