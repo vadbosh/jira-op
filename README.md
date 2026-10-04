@@ -14,7 +14,7 @@ Opencode.
 [Русская версия](README.RU.md) · Full setup guide:
 [English](docs/setup.en.md) · [Русский](docs/setup.ru.md)
 
->️ **It needs your site's values before it can write anything.** Issue type,
+> ⚠️ **It needs your site's values before it can write anything.** Issue type,
 > custom field ids, statuses and board number differ per project. They live in
 > one file, `SITE.md`, which `install.sh` generates from the live API on first
 > run. See [Configuring it](#configuring-it).
@@ -266,14 +266,8 @@ assumption that it is one.
 
 ## Configuring it
 
-The skill files carry `<PLACEHOLDER>` names, never a hard-coded site. One file
-resolves them:
-
-```bash
-$SKILL/scripts/site-probe.sh --write           # the normal path
-```
-
-Or let the probe write it, which is the normal path — `install.sh` and
+The skill files carry `<PLACEHOLDER>` names, never a hard-coded site. One file,
+`SITE.md`, resolves them. The probe normally writes it — `install.sh` and
 `add-site.sh` already call it when no site file exists:
 
 ```bash
