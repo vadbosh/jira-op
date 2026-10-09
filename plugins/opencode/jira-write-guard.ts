@@ -12,7 +12,10 @@ import type { Plugin } from "@opencode-ai/plugin"
 
 // Cheap pre-filter: only commands that mention Jira can be Jira writes. The same
 // pattern as MENTION in the guard; tests/test_write_guard.sh checks they agree.
+// Quotes and backslashes are removed first, as the guard does: bash drops them,
+// so ji''ra still runs jira.
 const MENTION = /\bjira\b|\/rest\/(?:api|agile)\/|atlassian\.(?:net|com)/i
+const mentions = (command: string) => MENTION.test(command.replace(/[\\'"]/g, ""))
 
 export const JiraWriteGuardPlugin: Plugin = async ({ $, client }) => {
   const guard = `${process.env.HOME ?? ""}/.config/opencode/skills/jira-op/scripts/jira-write-guard`
@@ -24,7 +27,7 @@ export const JiraWriteGuardPlugin: Plugin = async ({ $, client }) => {
       "tool.execute.before": async (input, output) => {
         if (String(input?.tool ?? "").toLowerCase() !== "bash") return
         const command = (output?.args as Record<string, unknown> | undefined)?.command
-        if (typeof command === "string" && MENTION.test(command)) {
+        if (typeof command === "string" && mentions(command)) {
           throw new Error(`jira-write-guard: ${guard} is missing; run jira-op/install.sh.`)
         }
       },
@@ -36,7 +39,7 @@ export const JiraWriteGuardPlugin: Plugin = async ({ $, client }) => {
       if (String(input?.tool ?? "").toLowerCase() !== "bash") return
       const command = (output?.args as Record<string, unknown> | undefined)?.command
       if (typeof command !== "string" || !command) return
-      if (!MENTION.test(command)) return
+      if (!mentions(command)) return
 
       let messages: { role: string; text: string }[] = []
       try {

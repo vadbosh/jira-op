@@ -28,9 +28,18 @@ What is a write. For jira-cli, everything except a known read (an allowlist
 taken from `jira --help` of 1.7.0): a new verb or alias is refused until it is
 listed, never let through. For curl, wget, httpie and xh aimed at `/rest/api/`,
 `/rest/agile/` or an Atlassian host: PUT, PATCH, DELETE, or POST/a request body,
-except a POST search. Heredoc bodies are data; `$( )`, backticks and `sh -c`
-strings are commands. Not seen: a write made from a script file or from another
-language (`python3 -c`, `node -e`).
+except a POST search. Heredoc bodies are data; `$( )`, backticks, `sh -c`,
+`eval`, `env -S` and `watch` strings are commands. Quotes inside a word do not
+hide it (`ji''ra`). The guard also looks past the first word: `xargs jira`,
+`find -exec jira`, `ssh host jira …` count as jira-cli — with `xargs`, a missing
+verb is taken as a write, since it comes from stdin.
+
+Fail-closed where the command cannot be read. When the command names Jira
+anywhere, a command word that is a variable or a substitution (`$J issue …`,
+`$(echo jira) …`) is a write no «да» covers, and an HTTP client whose URL is a
+variable (`U=…atlassian.net…; curl -X DELETE "$U"`) is judged as a Jira call.
+Not seen: a write made from a script file or from another language
+(`python3 -c`, `node -e`).
 
 Input (stdin, JSON): the hook payload. `tool_input.command` is the command;
 the conversation comes from `transcript_path` (Claude Code or Codex JSONL) or,
@@ -78,6 +87,15 @@ DESTRUCTIVE_REASON = (
 # Anything that names Jira at all. The Opencode plugin pre-filters with the same
 # pattern; tests/test_write_guard.sh checks that the two agree.
 MENTION = re.compile(r"\bjira\b|/rest/(?:api|agile)/|atlassian\.(?:net|com)", re.I)
+# MENTION is matched with quotes and backslashes removed: bash drops them, so
+# ji''ra and /rest/ap\i/ still run jira and still reach the API. The Opencode
+# plugin removes the same characters.
+QUOTES = re.compile(r"""[\\'"]""")
+
+
+def mentions(cmd):
+    return bool(MENTION.search(QUOTES.sub("", cmd)))
+
 
 # jira-cli 1.7.0 reads, from `jira --help` and `jira <group> --help`.
 JIRA_READ_TOP = {"open", "me", "serverinfo", "version", "help", "init", "man", "completion"}
@@ -111,6 +129,8 @@ WRAPPERS = {
     "stdbuf": {"-i", "-o", "-e"},
     "ionice": {"-c", "-n", "-p"},
 }
+# Options of `watch` that take a value; the rest of its arguments is one sh -c string.
+WATCH_VALUE = {"-n", "--interval", "-q", "--equexit"}
 SHELLS = {"bash", "sh", "zsh", "dash", "ksh"}
 
 HTTP_CLIENTS = {"curl", "wget", "http", "https", "xh", "xhs"}
@@ -208,27 +228,45 @@ def _segments(cmd):
 
 
 def _strip_prefix(words):
-    """Drop VAR=value assignments, shell keywords and wrappers with their options."""
-    i = 0
+    """Drop VAR=value assignments, shell keywords and wrappers with their options.
+
+    Returns (words, appended): appended is True under xargs, which adds
+    arguments from stdin that the guard cannot see. `env -S STRING` splits
+    STRING into the command, as env does.
+    """
+    i, appended = 0, False
     while i < len(words):
         w = words[i]
         if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", w) or w in SHELL_KEYWORDS:
             i += 1
         elif w in WRAPPERS:
             takes = WRAPPERS[w]
+            appended |= w == "xargs"
             i += 1
+            split = None
             while i < len(words) and words[i].startswith("-"):
                 opt = words[i]
                 i += 1
                 if opt == "--":
                     break
+                if w == "env" and opt in ("-S", "--split-string"):
+                    split = words[i] if i < len(words) else ""
+                    i += 1
+                    break
+                if w == "env" and (opt.startswith("--split-string=") or
+                                   (opt.startswith("-S") and len(opt) > 2)):
+                    split = opt.split("=", 1)[1] if opt.startswith("--") else opt[2:]
+                    break
                 if opt in takes:
                     i += 1
+            if split is not None:
+                words, i = shlex.split(split) + words[i:], 0
+                continue
             if w == "timeout":
                 i += 1  # the duration
         else:
             break
-    return words[i:]
+    return words[i:], appended
 
 
 def _dash_c(args):
@@ -265,11 +303,12 @@ def _flag_value(args, short, long):
     return None
 
 
-def _jira_verdict(args):
+def _jira_verdict(args, appended=False):
     """(write, destructive, create) for jira-cli; a write unless a known read.
 
     destructive is None, or the targets of a delete or a sprint close. create
-    is None, or (summary, False) for a command that makes a ticket.
+    is None, or (summary, False) for a command that makes a ticket. appended:
+    xargs adds words from stdin, so a missing group or verb is not a read.
     """
     before_dashes = args[:args.index("--")] if "--" in args else args
     if HELP_FLAGS & set(before_dashes):
@@ -283,6 +322,8 @@ def _jira_verdict(args):
         if not w.startswith("-"):
             pos.append(w)
         k += 1
+    if appended and (not pos or (pos[0] in JIRA_GROUPS and len(pos) < 2)):
+        return True, (), None  # the verb and its targets come from stdin
     if not pos or pos[0] in JIRA_READ_TOP:
         return False, None, None
     if pos[0] not in JIRA_GROUPS:
@@ -337,10 +378,26 @@ def _next(args, k):
     return args[k + 1] if k + 1 < len(args) else ""
 
 
-def _http_verdict(prog, args):
+def _names_group(args, appended):
+    """A later word `jira` is jira-cli only when a command group follows it:
+    `rg -n jira ~/.config/.jira/` is a search, `find -exec jira issue …` is not."""
+    k = 0
+    while k < len(args) and args[k].startswith("-"):
+        k += 2 if args[k] in JIRA_VALUE_FLAGS else 1
+    return args[k] in JIRA_GROUPS if k < len(args) else appended
+
+
+def _http_verdict(prog, args, opaque=False):
     """(write, destructive, create) for an HTTP client: destructive is set for
-    DELETE, create for a write to /rest/api/<v>/issue."""
+    DELETE, create for a write to /rest/api/<v>/issue.
+
+    opaque: the command names Jira elsewhere, so a URL the guard cannot read —
+    a variable, a substitution, or one xargs appends — is taken for a Jira URL.
+    """
     urls = [w for w in args if JIRA_URL.search(w)]
+    if not urls and opaque:
+        urls = [w for w in args if not w.startswith("-") and re.search(r"[$`]", w)] or \
+               (["$STDIN"] if opaque == "appended" else [])
     if not urls:
         return False, None, None
     write = _http_is_write(prog, args, urls)
@@ -416,7 +473,7 @@ def _scan(cmd, depth, ctx):
     first write: ctx collects the targets of each delete or sprint close, the
     summary of each create, and a `jq --arg summary` that builds a create body."""
     destructive = ctx["destructive"]
-    if not MENTION.search(cmd):
+    if not ctx["mention"]:
         return False
     cmd = _strip_heredocs(cmd)
     cmd = re.sub(r"\\\r?\n", " ", cmd)  # a `\`-continued line is one command
@@ -429,7 +486,7 @@ def _scan(cmd, depth, ctx):
     except ValueError:
         # Unparsable quoting: the segments cannot be trusted, so any mention of
         # Jira counts as a write rather than judging the first word alone.
-        if not MENTION.search(cmd):
+        if not mentions(cmd):
             return write
         if re.search(r"\b(?:delete|del|rm|remove|close|complete)\b", cmd, re.I):
             destructive.append(())
@@ -437,26 +494,62 @@ def _scan(cmd, depth, ctx):
             ctx["creates"].append((None, False))
         return True
     for seg in segments:
-        words = _strip_prefix(seg)
-        if not words:
-            continue
-        prog = words[0].rsplit("/", 1)[-1]
-        verdict = (False, None, None)
-        if prog in SHELLS:
-            script = _dash_c(words[1:])
-            if script is not None and depth < MAX_DEPTH:
-                write |= _scan(script, depth + 1, ctx)
-        elif prog == "jira":
-            verdict = _jira_verdict(words[1:])
-        elif prog in HTTP_CLIENTS:
-            verdict = _http_verdict(prog, words[1:])
-        elif prog == "jq":
-            s = _jq_arg(words[1:], "summary")
-            if s is not None:
-                ctx["jq_summary"] = s
+        words, appended = _strip_prefix(seg)
+        if words:
+            write |= _judge(words, appended, depth, ctx)
+    return write
+
+
+def _judge(words, appended, depth, ctx):
+    """True if one simple command writes to Jira; fills ctx like _scan."""
+    prog = words[0].rsplit("/", 1)[-1]
+    write = False
+    verdicts = []
+    if re.match(r"^[$`]", words[0]) and "/" not in words[0]:
+        # `$J issue …`, `$(echo jira) …`: the program is computed, so it cannot be
+        # told from jira. A write no «да» covers: the draft cannot name it.
+        ctx["destructive"].append(())
+        return True
+    if prog in SHELLS:
+        script = _dash_c(words[1:])
+        if script is not None and depth < MAX_DEPTH:
+            write |= _scan(script, depth + 1, ctx)
+    elif prog == "eval":
+        if depth < MAX_DEPTH:
+            write |= _scan(" ".join(words[1:]), depth + 1, ctx)
+    elif prog == "watch":
+        k = 1
+        while k < len(words) and words[k].startswith("-"):
+            k += 2 if words[k] in WATCH_VALUE else 1
+        if depth < MAX_DEPTH:
+            write |= _scan(" ".join(words[k:]), depth + 1, ctx)
+    elif prog == "jira":
+        verdicts.append(_jira_verdict(words[1:], appended))
+    elif prog in HTTP_CLIENTS:
+        verdicts.append(_http_verdict(prog, words[1:], "appended" if appended else True))
+    elif prog == "jq":
+        s = _jq_arg(words[1:], "summary")
+        if s is not None:
+            ctx["jq_summary"] = s
+    else:
+        # A program that runs another one from its arguments: find -exec,
+        # ssh host, parallel, flock, setsid. The guard does not list them; it
+        # judges every later word that is jira, an HTTP client or a shell -c.
+        for k in range(1, len(words)):
+            name = words[k].rsplit("/", 1)[-1]
+            if name == "jira" and _names_group(words[k + 1:], appended):
+                verdicts.append(_jira_verdict(words[k + 1:], appended))
+            elif name in HTTP_CLIENTS:
+                verdicts.append(_http_verdict(name, words[k + 1:],
+                                              "appended" if appended else True))
+            elif name in SHELLS and depth < MAX_DEPTH:
+                script = _dash_c(words[k + 1:])
+                if script is not None:
+                    write |= _scan(script, depth + 1, ctx)
+    for verdict in verdicts:
         write |= verdict[0]
         if verdict[1] is not None:
-            destructive.append(verdict[1])
+            ctx["destructive"].append(verdict[1])
         if verdict[2] is not None:
             ctx["creates"].append(verdict[2])
     return write
@@ -477,7 +570,7 @@ def classify(cmd):
     command that makes a ticket, the summary it sends, or None when the guard
     cannot see it.
     """
-    ctx = {"destructive": [], "creates": [], "jq_summary": None}
+    ctx = {"destructive": [], "creates": [], "jq_summary": None, "mention": mentions(cmd)}
     write = _scan(cmd, 0, ctx)
     # A body file written by jq in the same command does not exist yet, or is
     # the previous one: the jq argument is what will be sent.

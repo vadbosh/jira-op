@@ -223,6 +223,10 @@ raw "payload is an array" 0 '[1]'
 g="$(sed -n 's/^MENTION = re.compile(r"\(.*\)", re.I)$/\1/p' "$GUARD")"
 p="$(sed -n 's#^const MENTION = /\(.*\)/i$#\1#p' "$ROOT/plugins/opencode/jira-write-guard.ts" | sed 's#\\/#/#g')"
 if [ -n "$g" ] && [ "$g" = "$p" ]; then tally "plugin pre-filter" 0 0; else tally "plugin pre-filter = MENTION ('$p' vs '$g')" 0 1; fi
+# …and both strip the same characters before matching it.
+gq="$(sed -n 's/^QUOTES = re.compile(r"""\(.*\)""")$/\1/p' "$GUARD")"
+pq="$(sed -n 's#.*command\.replace(/\(.*\)/g, "").*#\1#p' "$ROOT/plugins/opencode/jira-write-guard.ts")"
+if [ -n "$gq" ] && [ "$gq" = "$pq" ]; then tally "plugin strips quotes" 0 0; else tally "plugin strips quotes = QUOTES ('$pq' vs '$gq')" 0 1; fi
 
 echo "jira-write-guard: $pass passed, $fail failed"
 [ "$fail" = 0 ]

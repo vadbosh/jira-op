@@ -112,3 +112,27 @@
 {"want": 2, "name": "curl -T upload", "cmd": "curl -sT f.png https://x.atlassian.net/rest/api/2/issue/OP-1/attachments"}
 {"want": 2, "name": "xh body from stdin", "cmd": "xh https://x.atlassian.net/rest/api/2/issue < f.json"}
 {"want": 2, "name": "http --raw", "cmd": "http --raw '{}' https://x.atlassian.net/rest/api/2/issue"}
+{"want":2,"name":"bypass: quotes inside the word","cmd":"ji''ra issue move OP-1 Done"}
+{"want":2,"name":"bypass: eval","cmd":"eval \"jira issue move OP-1 Done\""}
+{"want":2,"name":"bypass: program in a variable","cmd":"J=jira; $J issue move OP-1 Done"}
+{"want":2,"name":"bypass: program from a substitution","cmd":"$(echo jira) issue move OP-1 Done"}
+{"want":2,"name":"bypass: env -S string","cmd":"env -S 'jira issue move OP-1 Done'"}
+{"want":2,"name":"bypass: xargs supplies the verb","cmd":"echo issue move OP-1 Done | xargs jira"}
+{"want":2,"name":"bypass: find -exec","cmd":"find . -maxdepth 0 -exec jira issue move OP-1 Done \\;"}
+{"want":2,"name":"bypass: watch","cmd":"watch -n1 jira issue move OP-1 Done"}
+{"want":2,"name":"bypass: quotes inside /rest/api/, bare IP","cmd":"curl -X PUT https://10.0.0.5/rest/ap''i/2/issue/OP-1 -d @b.json"}
+{"want":2,"name":"bypass: DELETE to a URL in a variable","cmd":"U=https://x.atlassian.net/rest/api/3/issue/OP-1; curl -X DELETE \"$U\""}
+{"want":2,"name":"watch with one string","cmd":"watch 'jira issue move OP-1 Done'"}
+{"want":2,"name":"ssh host jira","cmd":"ssh host jira issue delete OP-1"}
+{"want":2,"name":"find -exec sh -c","cmd":"find . -exec sh -c \"jira issue move OP-1 Done\" \\;"}
+{"want":2,"name":"xargs curl -X DELETE, URL from stdin","cmd":"echo https://x.atlassian.net/rest/api/2/issue/OP-1 | xargs curl -X DELETE"}
+{"want":2,"name":"${K} from a substitution","cmd":"K=$(echo jira); ${K} issue move OP-1 Done"}
+{"want":0,"name":"GET to a URL in a variable","cmd":"U=https://x.atlassian.net/rest/api/3/issue/OP-1; curl -s \"$U\""}
+{"want":0,"name":"rg for jira in a config path","cmd":"rg -n jira ~/.config/.jira/"}
+{"want":0,"name":"find -exec rg jira","cmd":"find . -name \"*.md\" -exec rg -n jira {} \\;"}
+{"want":0,"name":"xargs -I{} jira issue view","cmd":"echo OP-1 | xargs -I{} jira issue view {}"}
+{"want":0,"name":"watch a read","cmd":"watch -n5 'jira issue list --plain'"}
+{"want":0,"name":"eval a read","cmd":"eval 'jira issue view OP-1'"}
+{"want":0,"name":"env -S a read","cmd":"env -S 'jira issue view OP-1'"}
+{"want":0,"name":"token.env then a script by path","cmd":"set -a; . ~/.config/.jira/token.env; set +a; \"$SKILL/scripts/site-probe.sh\" --all --check"}
+{"want":0,"name":"which jira","cmd":"which jira"}
