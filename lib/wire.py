@@ -7,7 +7,7 @@ Idempotent: an entry that is already there is left alone, nothing is
 reordered, and a configuration file is backed up before its first change (to
 ~/.local/state/jira-op-backups, outside every directory an assistant scans).
 
-  claude    settings.json  PreToolUse/Bash → <skills>/jira-op/scripts/jira-write-guard
+  claude    settings.json  PreToolUse/Bash → <skills>/jira-op/scripts/jira-write-guard-hook
             rules/jira-trigger.md
   codex     hooks.json     PreToolUse/^Bash$ → the same script in ~/.codex/skills
             memories/jira-trigger.md + an @-line in ~/.codex/AGENTS.md
@@ -15,7 +15,10 @@ reordered, and a configuration file is backed up before its first change (to
             instructions/jira-trigger.md + an entry in opencode.json instructions[]
 
 Each assistant runs its own installed copy of the skill's script, so the hook
-lives wherever that assistant's skill lives.
+lives wherever that assistant's skill lives. The hook command is the launcher
+jira-write-guard-hook, not the guard itself: Claude Code and Codex block only on
+exit 2, and the launcher turns a missing python3, a crash or a deadline into a
+refusal (see its header).
 
 Exit 0 — wired or already current; 3 — the assistant is not installed; 1 — a
 configuration file could not be read, nothing was written for that assistant.
@@ -36,14 +39,14 @@ STAMP = time.strftime("%Y%m%d-%H%M%S")
 IDE = {
     "claude": {
         "home": f"{H}/.claude",
-        "guard": f"{H}/.claude/skills/jira-op/scripts/jira-write-guard",
+        "guard": f"{H}/.claude/skills/jira-op/scripts/jira-write-guard-hook",
         "hooks_file": f"{H}/.claude/settings.json",
         "matcher": "Bash",
         "rule_dir": f"{H}/.claude/rules",
     },
     "codex": {
         "home": f"{H}/.codex",
-        "guard": f"{H}/.codex/skills/jira-op/scripts/jira-write-guard",
+        "guard": f"{H}/.codex/skills/jira-op/scripts/jira-write-guard-hook",
         "hooks_file": f"{H}/.codex/hooks.json",
         "matcher": "^Bash$",
         "rule_dir": f"{H}/.codex/memories",
@@ -58,6 +61,8 @@ IDE = {
 }
 
 DRY = False
+# Above the launcher's own 20 s deadline, so the launcher answers first.
+HOOK_TIMEOUT = 30
 
 
 def say(msg):
@@ -109,13 +114,14 @@ def wire_hook(cfg):
     for group in pre:
         for h in group.get("hooks", []):
             if "jira-write-guard" in str(h.get("command", "")):
-                if h["command"] != cfg["guard"]:
-                    say(f"update hook path in {path}")
+                if h["command"] != cfg["guard"] or h.get("timeout") != HOOK_TIMEOUT:
+                    say(f"update hook command and timeout in {path}")
                     h["command"] = cfg["guard"]
+                    h["timeout"] = HOOK_TIMEOUT
                     save_json(path, data)
                 return
     pre.append({"matcher": cfg["matcher"], "hooks": [{
-        "type": "command", "command": cfg["guard"], "timeout": 10,
+        "type": "command", "command": cfg["guard"], "timeout": HOOK_TIMEOUT,
         "statusMessage": "jira-write-guard...",
     }]})
     say(f"add PreToolUse hook to {path}")

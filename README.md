@@ -99,7 +99,9 @@ carry its `Summary:` and `Description:`, with the summary the command sends. A
 delete or a sprint close passes only when the approved draft names every issue
 key or sprint id it touches. The **jira-trigger** rule makes the assistant
 load this skill for every Jira task instead of working from memory. That part needs `python3`;
-its tests are `tests/test_write_guard.sh`.
+its tests are `tests/test_write_guard.sh`. If the check cannot run — no
+`python3`, a crash, no answer within 20 seconds — the hook refuses every command
+that mentions Jira and lets the rest through.
 
 `install.sh` is a bash script — **Linux and macOS**, or WSL / Git Bash on
 Windows. There is no PowerShell installer; on native Windows copy

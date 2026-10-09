@@ -1,0 +1,62 @@
+#!/bin/sh
+# jira-write-guard-hook — the command Claude Code and Codex run as the PreToolUse
+# hook. It runs jira-write-guard and turns every way the guard can fail to
+# answer into a refusal.
+#
+# Why a launcher: both assistants block only on exit 2. Any other exit — no
+# python3 on PATH, a guard that crashes before its own try/except, a guard
+# killed by a deadline — counts as "the hook failed" and the command runs. The
+# Opencode plugin already refuses on any exit but 0; this gives the other two
+# the same behaviour.
+#
+# A failed guard refuses only a command that mentions Jira, with the guard's
+# own test (jira, /rest/api/, /rest/agile/, atlassian.net|com, quotes and
+# backslashes removed). The test runs on the whole hook payload, so it is a
+# superset: a session whose path contains "jira" refuses more while the guard
+# is broken. Everything else still runs — a broken python3 must not stop every
+# shell command on the machine.
+#
+# Deadline: JIRA_GUARD_DEADLINE seconds (default 20), enforced with timeout(1)
+# when it exists, below the 30 s the hook entry allows. Without timeout(1) the
+# assistant's own hook timeout applies, and how an assistant treats that is
+# outside this script.
+
+dir=$(dirname "$0")
+guard="$dir/jira-write-guard"
+deadline="${JIRA_GUARD_DEADLINE:-20}"
+
+payload=$(cat)
+
+mentions() {
+	printf '%s' "$payload" | tr -d "\\\\'\"" |
+		grep -Eiq 'jira|/rest/(api|agile)/|atlassian\.(net|com)'
+}
+
+refuse() {
+	if mentions; then
+		printf 'jira-write-guard: %s — the command mentions Jira, so it is refused.\n' "$1" >&2
+		printf 'Fix the guard (tests/test_write_guard.sh), then run the command again.\n' >&2
+		exit 2
+	fi
+	exit 0
+}
+
+command -v python3 >/dev/null 2>&1 || refuse "python3 not found, the guard cannot run"
+[ -r "$guard" ] || refuse "$guard is missing"
+
+if command -v timeout >/dev/null 2>&1; then
+	printf '%s' "$payload" | timeout "$deadline" python3 "$guard"
+	rc=$?
+elif command -v gtimeout >/dev/null 2>&1; then
+	printf '%s' "$payload" | gtimeout "$deadline" python3 "$guard"
+	rc=$?
+else
+	printf '%s' "$payload" | python3 "$guard"
+	rc=$?
+fi
+
+case "$rc" in
+	0 | 2) exit "$rc" ;;
+	124) refuse "the guard did not answer within ${deadline}s" ;;
+	*) refuse "the guard failed (exit $rc)" ;;
+esac

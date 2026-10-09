@@ -150,7 +150,8 @@ fi
 FIRST="${targets[0]}/jira-op"
 if [ "$DRY_RUN" = 0 ]; then
 	for dir in "${targets[@]}"; do
-		chmod 755 "$dir/jira-op/scripts/"*.sh "$dir/jira-op/scripts/jira-write-guard" 2>/dev/null || true
+		chmod 755 "$dir/jira-op/scripts/"*.sh "$dir/jira-op/scripts/jira-write-guard" \
+		      "$dir/jira-op/scripts/jira-write-guard-hook" 2>/dev/null || true
 	done
 fi
 
@@ -182,8 +183,9 @@ if [ -z "$SKILLS_DIR" ] && [ "$NO_HOOKS" = 0 ]; then
 		done
 	fi
 	if [ "$DRY_RUN" = 0 ] && [ -z "$unwired" ]; then
-		# The guard must refuse an unapproved write and let a read through.
-		g="${targets[0]}/jira-op/scripts/jira-write-guard"
+		# The hook as wired — the launcher in front of the guard — must refuse an
+		# unapproved write and let a read through.
+		g="${targets[0]}/jira-op/scripts/jira-write-guard-hook"
 		w=$(printf '%s' '{"tool_input":{"command":"jira issue create -pX"},"transcript_path":null}' | "$g" 2>/dev/null; echo $?)
 		r=$(printf '%s' '{"tool_input":{"command":"jira issue view X-1"},"transcript_path":null}' | "$g" 2>/dev/null; echo $?)
 		if [ "$w" = 2 ] && [ "$r" = 0 ]; then

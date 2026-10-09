@@ -228,5 +228,44 @@ gq="$(sed -n 's/^QUOTES = re.compile(r"""\(.*\)""")$/\1/p' "$GUARD")"
 pq="$(sed -n 's#.*command\.replace(/\(.*\)/g, "").*#\1#p' "$ROOT/plugins/opencode/jira-write-guard.ts")"
 if [ -n "$gq" ] && [ "$gq" = "$pq" ]; then tally "plugin strips quotes" 0 0; else tally "plugin strips quotes = QUOTES ('$pq' vs '$gq')" 0 1; fi
 
+# --- the hook launcher: a guard that cannot answer refuses a Jira command ----------
+# hook <name> <want> <launcher> <command> [env…] — runs the launcher as the host would
+hook() {
+	local name="$1" want="$2" launcher="$3" cmd="$4" got; shift 4
+	jq -cn --arg c "$cmd" '{tool_name:"Bash",tool_input:{command:$c},transcript_path:null}' |
+		env "$@" "$launcher" >/dev/null 2>&1; got=$?
+	tally "hook: $name" "$want" "$got"
+}
+LAUNCHER="$ROOT/skills/jira-op/scripts/jira-write-guard-hook"
+hook "real guard, unapproved write" 2 "$LAUNCHER" "jira issue create -pX"
+hook "real guard, read" 0 "$LAUNCHER" "jira issue view X-1"
+hook "real guard, unrelated command" 0 "$LAUNCHER" "ls -la"
+
+mkdir -p "$T/nopy" "$T/crash" "$T/slow" "$T/gone"
+for t in sh dirname cat tr grep timeout env; do ln -s "$(command -v "$t")" "$T/nopy/$t"; done
+hook "no python3, Jira write" 2 "$LAUNCHER" "jira issue create -pX" PATH="$T/nopy"
+hook "no python3, unrelated command runs" 0 "$LAUNCHER" "ls -la" PATH="$T/nopy"
+hook "no python3, quoted ji''ra" 2 "$LAUNCHER" "ji''ra issue move OP-1 Done" PATH="$T/nopy"
+
+cp "$LAUNCHER" "$T/crash/"; printf 'import sys\nsys.exit(1)\n' >"$T/crash/jira-write-guard"
+hook "guard crashes, Jira write" 2 "$T/crash/jira-write-guard-hook" "jira issue create -pX"
+hook "guard crashes, unrelated command runs" 0 "$T/crash/jira-write-guard-hook" "ls -la"
+
+cp "$LAUNCHER" "$T/slow/"; printf 'import time\ntime.sleep(5)\n' >"$T/slow/jira-write-guard"
+hook "guard past the deadline, Jira write" 2 "$T/slow/jira-write-guard-hook" "jira issue create -pX" JIRA_GUARD_DEADLINE=1
+
+cp "$LAUNCHER" "$T/gone/"
+hook "guard missing, Jira write" 2 "$T/gone/jira-write-guard-hook" "jira issue create -pX"
+hook "guard missing, unrelated command runs" 0 "$T/gone/jira-write-guard-hook" "ls -la"
+
+# …and the launcher's pre-filter is the guard's MENTION, written for grep -E.
+lm="$(sed -n "s/.*grep -Eiq '\(.*\)'.*/\1/p" "$LAUNCHER")"
+if [ "$lm" = 'jira|/rest/(api|agile)/|atlassian\.(net|com)' ] &&
+	[ "$(sed -n 's/^MENTION = re.compile(r"\(.*\)", re.I)$/\1/p' "$GUARD")" = '\bjira\b|/rest/(?:api|agile)/|atlassian\.(?:net|com)' ]; then
+	tally "launcher pre-filter tracks MENTION" 0 0
+else
+	tally "launcher pre-filter tracks MENTION (update both together)" 0 1
+fi
+
 echo "jira-write-guard: $pass passed, $fail failed"
 [ "$fail" = 0 ]
