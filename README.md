@@ -103,6 +103,22 @@ its tests are `tests/test_write_guard.sh`. If the check cannot run — no
 `python3`, a crash, no answer within 20 seconds — the hook refuses every command
 that mentions Jira and lets the rest through.
 
+**Claude Code in auto mode** may refuse a Jira write that the guard has already
+let through, with the reason `External System Writes`. Its classifier does not
+know that the Jira site is yours, and a bare «да» does not name the action.
+This was seen on Claude Code 2.1.296. `install.sh` does not configure it,
+because the installer would then loosen a safety check on your behalf. Add two
+entries to `autoMode` in `~/.claude/settings.json` yourself, with your own site:
+
+```json
+"autoMode": {
+  "environment": ["$defaults", "<your-site>.atlassian.net is the user's own Jira, the work tracker the jira-op skill reads and writes with the jira CLI or its REST API."],
+  "allow": ["$defaults", "A write to the user's Jira at <your-site>.atlassian.net through the jira CLI or its REST API is allowed once the assistant has printed the full draft ending with «Утверждаешь? (да/нет)» and the human answered «да»; jira-write-guard refuses it otherwise."]
+}
+```
+
+`"$defaults"` keeps the built-in rules. Codex and Opencode have no such classifier.
+
 `install.sh` is a bash script — **Linux and macOS**, or WSL / Git Bash on
 Windows. There is no PowerShell installer; on native Windows copy
 `skills\jira-op` into the assistant's skills directory yourself. The skill is

@@ -104,6 +104,23 @@ cd jira-op
 упал или не ответил за 20 секунд, — хук запрещает любую команду, где упомянута
 Jira, а остальные пропускает.
 
+**Claude Code в режиме auto** может отклонить запись в Jira, которую guard уже
+пропустил, с причиной `External System Writes`. Его классификатор не знает, что
+этот сайт Jira — ваш, а одно «да» не называет действие. Так было на Claude Code
+2.1.296. `install.sh` это не настраивает: иначе установщик сам ослаблял бы
+проверку безопасности за вас. Добавьте две записи в `autoMode` в
+`~/.claude/settings.json` вручную, подставив свой сайт:
+
+```json
+"autoMode": {
+  "environment": ["$defaults", "<your-site>.atlassian.net is the user's own Jira, the work tracker the jira-op skill reads and writes with the jira CLI or its REST API."],
+  "allow": ["$defaults", "A write to the user's Jira at <your-site>.atlassian.net through the jira CLI or its REST API is allowed once the assistant has printed the full draft ending with «Утверждаешь? (да/нет)» and the human answered «да»; jira-write-guard refuses it otherwise."]
+}
+```
+
+`"$defaults"` сохраняет встроенные правила. В Codex и Opencode такого
+классификатора нет.
+
 `install.sh` написан на bash — это **Linux и macOS** либо WSL или Git Bash под
 Windows. Установщика на PowerShell нет: в родном Windows скопируйте
 `skills\jira-op` в каталог скилов ассистента вручную. Сам скил состоит из
