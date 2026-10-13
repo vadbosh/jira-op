@@ -627,6 +627,13 @@ def _from_transcript(path):
                     if t:
                         events.append(("assistant", t))
                 continue
+            # Claude Code records a message typed while a turn runs as an
+            # attachment, not as a user entry. It is still the human's latest
+            # word: a "стоп" there must withdraw an earlier «да».
+            att = e.get("attachment") if e.get("type") == "attachment" else None
+            if isinstance(att, dict) and att.get("type") == "queued_command":
+                events.append(("user", str(att.get("prompt", ""))))
+                continue
             # Codex rollout
             p = e.get("payload") if e.get("type") == "response_item" else None
             if isinstance(p, dict) and p.get("type") == "message":

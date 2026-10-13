@@ -13,12 +13,14 @@ DRAFT=$'Summary:      Fix the build\nType:         Task\n\nDescription:\nWhat wa
 MARK="${DRAFT}Утверждаешь? (да/нет)"
 
 # --- transcript builders -----------------------------------------------------
-cc() {  # cc <file> <kind:text> ... ; kinds: u=typed user, a=assistant text, q=dialog answer (tool_result)
+cc() {  # cc <file> <kind:text> ... ; kinds: u=typed user, a=assistant text, q=dialog answer (tool_result),
+        #   m=typed while a turn runs (Claude Code records it as an attachment, not a user entry)
 	local f="$1"; shift; : >"$f"
 	for item in "$@"; do
 		local kind="${item%%:*}" text="${item#*:}"
 		case "$kind" in
 			u) jq -cn --arg t "$text" '{type:"user",message:{role:"user",content:$t}}' >>"$f" ;;
+			m) jq -cn --arg t "$text" '{type:"attachment",attachment:{type:"queued_command",prompt:$t}}' >>"$f" ;;
 			a) jq -cn --arg t "$text" '{type:"assistant",message:{role:"assistant",content:[{type:"text",text:$t}]}}' >>"$f" ;;
 			q) jq -cn --arg t "$text" '{type:"user",message:{role:"user",content:[{type:"tool_result",tool_use_id:"x",content:$t}]}}' >>"$f" ;;
 		esac
@@ -92,6 +94,12 @@ cc "$T/second.jsonl" "u:заведи тикет" "a:$MARK"$'\n\nИ ещё: ст�
 expect "cc: another question after the marker" 2 "$CREATE" "$T/second.jsonl"
 cc "$T/bold.jsonl" "u:заведи тикет" "a:${DRAFT}**Утверждаешь? (да/нет)**" "u:да"
 expect "cc: marker in bold still ends the reply" 0 "$CREATE" "$T/bold.jsonl"
+cc "$T/midstop.jsonl" "u:заведи тикет" "a:$MARK" "u:да" "a:создаю" "m:стоп, не надо"
+expect "cc: a stop typed while the turn runs withdraws the да" 2 "$CREATE" "$T/midstop.jsonl"
+cc "$T/midda.jsonl" "u:заведи тикет" "a:$MARK" "u:да, но сначала проверь" "a:проверяю" "m:да"
+expect "cc: a да typed while the turn runs, no fresh marker" 2 "$CREATE" "$T/midda.jsonl"
+cc "$T/midnote.jsonl" "u:заведи тикет" "a:$MARK" "u:да" "a:создаю" "m:<system-reminder>x</system-reminder>"
+expect "cc: injected text recorded as an attachment does not withdraw" 0 "$CREATE" "$T/midnote.jsonl"
 
 # --- a create: the approved reply is its draft -------------------------------------
 cc "$T/nodraft.jsonl" "u:заведи тикет" "a:Тикет готов. Утверждаешь? (да/нет)" "u:да"
