@@ -85,8 +85,11 @@ DESTRUCTIVE_REASON = (
 # --- what counts as a Jira write --------------------------------------------
 
 # Anything that names Jira at all. The Opencode plugin pre-filters with the same
-# pattern; tests/test_write_guard.sh checks that the two agree.
-MENTION = re.compile(r"\bjira\b|/rest/(?:api|agile)/|atlassian\.(?:net|com)", re.I)
+# pattern; tests/test_write_guard.sh checks that the two agree. `jira-` is not a
+# mention: it names this skill's own files (jira-op, jira-write-guard,
+# jira-trigger), and with a computed program in the same command (`cd …/jira-op
+# && $K status`) a read was refused as a write no «да» covers (F305).
+MENTION = re.compile(r"\bjira\b(?!-)|/rest/(?:api|agile)/|atlassian\.(?:net|com)", re.I)
 # MENTION is matched with quotes and backslashes removed: bash drops them, so
 # ji''ra and /rest/ap\i/ still run jira and still reach the API. The Opencode
 # plugin removes the same characters.

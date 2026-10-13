@@ -266,10 +266,11 @@ cp "$LAUNCHER" "$T/gone/"
 hook "guard missing, Jira write" 2 "$T/gone/jira-write-guard-hook" "jira issue create -pX"
 hook "guard missing, unrelated command runs" 0 "$T/gone/jira-write-guard-hook" "ls -la"
 
-# …and the launcher's pre-filter is the guard's MENTION, written for grep -E.
+# …and the launcher's pre-filter is the guard's MENTION, written for grep -E —
+# a superset: plain `jira` also takes `jira-op`, which MENTION leaves out (F305).
 lm="$(sed -n "s/.*grep -Eiq '\(.*\)'.*/\1/p" "$LAUNCHER")"
 if [ "$lm" = 'jira|/rest/(api|agile)/|atlassian\.(net|com)' ] &&
-	[ "$(sed -n 's/^MENTION = re.compile(r"\(.*\)", re.I)$/\1/p' "$GUARD")" = '\bjira\b|/rest/(?:api|agile)/|atlassian\.(?:net|com)' ]; then
+	[ "$(sed -n 's/^MENTION = re.compile(r"\(.*\)", re.I)$/\1/p' "$GUARD")" = '\bjira\b(?!-)|/rest/(?:api|agile)/|atlassian\.(?:net|com)' ]; then
 	tally "launcher pre-filter tracks MENTION" 0 0
 else
 	tally "launcher pre-filter tracks MENTION (update both together)" 0 1

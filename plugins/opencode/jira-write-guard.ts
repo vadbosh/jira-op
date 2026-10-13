@@ -14,7 +14,7 @@ import type { Plugin } from "@opencode-ai/plugin"
 // pattern as MENTION in the guard; tests/test_write_guard.sh checks they agree.
 // Quotes and backslashes are removed first, as the guard does: bash drops them,
 // so ji''ra still runs jira.
-const MENTION = /\bjira\b|\/rest\/(?:api|agile)\/|atlassian\.(?:net|com)/i
+const MENTION = /\bjira\b(?!-)|\/rest\/(?:api|agile)\/|atlassian\.(?:net|com)/i
 const mentions = (command: string) => MENTION.test(command.replace(/[\\'"]/g, ""))
 
 export const JiraWriteGuardPlugin: Plugin = async ({ $, client }) => {
