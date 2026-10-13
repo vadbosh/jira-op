@@ -106,9 +106,14 @@ that mentions Jira and lets the rest through.
 **Claude Code in auto mode** may refuse a Jira write that the guard has already
 let through, with the reason `External System Writes`. Its classifier does not
 know that the Jira site is yours, and a bare «да» does not name the action.
-This was seen on Claude Code 2.1.296. `install.sh` does not configure it,
-because the installer would then loosen a safety check on your behalf. Add two
-entries to `autoMode` in `~/.claude/settings.json` yourself, with your own site:
+This was seen on Claude Code 2.1.296. The fix is two entries in `autoMode` in
+`~/.claude/settings.json`, and `skills/jira-op/scripts/automode-setup.sh` writes
+them for every site configured for jira-cli. It shows the change and asks
+`y/N` first; `--dry-run` only shows it, `--remove` takes the entries out.
+`install.sh` offers to run it when started from a terminal and only prints the
+command otherwise. Run it yourself, never through the assistant: it loosens a
+safety check, and Claude Code refuses an assistant doing that to itself. What
+it writes, for a site `<your-site>`:
 
 ```json
 "autoMode": {

@@ -198,6 +198,21 @@ if [ -z "$SKILLS_DIR" ] && [ "$NO_HOOKS" = 0 ]; then
 	fi
 fi
 
+# Claude Code auto mode: its classifier has to be told that the Jira site is the
+# user's, or it refuses writes the guard already let through. That loosens a
+# safety check, so it is asked at a terminal and never done silently; when no
+# human is at the terminal (an assistant running install.sh) only the command
+# is printed. The script shows the change and asks y/N itself.
+AUTOMODE="$HOME/.claude/skills/jira-op/scripts/automode-setup.sh"
+if [ "$DRY_RUN" = 0 ] && [ -z "$SKILLS_DIR" ] && [ -x "$AUTOMODE" ]; then
+	printf '\nClaude Code auto mode — let it write to your Jira after your «да»\n'
+	if [ -t 0 ] && [ -t 1 ]; then
+		set +e; "$AUTOMODE"; set -e
+	else
+		printf '  not a terminal — run it yourself: %s\n' "$AUTOMODE"
+	fi
+fi
+
 cat <<EOF
 
 Next:
@@ -207,4 +222,6 @@ Next:
                                (re-run when a create or a transition fails)
   4. several sites             $FIRST/scripts/add-site.sh <name>
                                . $FIRST/scripts/jira_site.sh
+  5. Claude Code auto mode     $AUTOMODE
+                               (after 1 and 4: it names every site configured)
 EOF
