@@ -49,6 +49,12 @@ fresh '{"model":"opus"}'; cp "$S" "$T/before"; rc=$(run n)
 cmp -s "$S" "$T/before" && [ "$rc" = 0 ] && grep -q 'not written' "$T/out" \
 	&& ok "answer n writes nothing" || bad "answer n writes nothing" "rc=$rc"
 
+# 4b. no input at all (Claude Code's "!" prefix): unchanged, names the echo y form
+fresh '{"model":"opus"}'; cp "$S" "$T/before"
+bash "$SCRIPT" </dev/null >"$T/out" 2>&1; rc=$?
+cmp -s "$S" "$T/before" && [ "$rc" = 0 ] && grep -q 'echo y | ' "$T/out" \
+	&& ok "closed stdin writes nothing and names echo y" || bad "closed stdin writes nothing and names echo y" "rc=$rc $(tail -2 "$T/out")"
+
 # 5. --dry-run: unchanged, shows the after
 fresh '{"model":"opus"}'; cp "$S" "$T/before"; rc=$(run y --dry-run)
 cmp -s "$S" "$T/before" && grep -q 'jira-op: acme.atlassian.net' "$T/out" \

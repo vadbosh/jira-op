@@ -91,7 +91,12 @@ printf '%s' "$new" | jq '.autoMode // "(none)"'
 [ "$MODE" = dry ] && { printf '\n--dry-run: nothing written\n'; exit 0; }
 
 printf '\nWrite this to %s? [y/N] ' "$SETTINGS"
-read -r answer || answer=""
+if ! read -r answer; then
+	# No line at all: stdin is closed, as under Claude Code's "!" prefix.
+	printf '\nno answer: input is not a terminal — nothing written.\n'
+	printf 'Having read the change above, answer in the same command:\n  echo y | %s\n' "$0"
+	exit 0
+fi
 case "$answer" in
 	y|Y|yes|YES|д|Д|да|Да) ;;
 	*) printf 'not written\n'; exit 0 ;;
