@@ -573,7 +573,11 @@ def classify(cmd):
     command that makes a ticket, the summary it sends, or None when the guard
     cannot see it.
     """
-    ctx = {"destructive": [], "creates": [], "jq_summary": None, "mention": mentions(cmd)}
+    # A heredoc body is data, so it is not a mention either: a note saying "Jira"
+    # fed to `python3 - <<EOF` made the `$K sync` after it a computed program in
+    # a Jira command, refused as a write no «да» covers (F357).
+    ctx = {"destructive": [], "creates": [], "jq_summary": None,
+           "mention": mentions(_strip_heredocs(cmd))}
     write = _scan(cmd, 0, ctx)
     # A body file written by jq in the same command does not exist yet, or is
     # the previous one: the jq argument is what will be sent.

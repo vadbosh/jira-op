@@ -142,3 +142,7 @@
 {"want":2,"name":"F305: a jira-op path does not hide J=jira","cmd":"J=jira; cd /x/jira-op && $J issue move OP-1 Done"}
 {"want":2,"name":"F305: a jira-op path next to a real write","cmd":"cd /home/repos/jira-op && jira issue move OP-1 Done"}
 {"want":2,"name":"F305: jira- in an API host is still a mention","cmd":"curl -X POST https://x.atlassian.net/rest/api/2/issue/OP-1/comment -d @b.json"}
+{"want":0,"name":"F357: Jira only inside a heredoc body, then a computed program","cmd":"cd kb && python3 -I - <<'EOF'\nprint('Jira: OP Sprint 7 and OP Sprint 8')\nEOF\nK=/x/kb; $K sync >/dev/null; $K check"}
+{"want":2,"name":"F357: a heredoc does not hide J=jira after it","cmd":"cat > /tmp/n.md <<'EOF'\nnotes\nEOF\nJ=jira; $J issue move OP-1 Done"}
+{"want":2,"name":"F357: a heredoc mentioning Jira, then a real write","cmd":"cat > /tmp/n.md <<'EOF'\nJira notes\nEOF\njira issue move OP-1 Done"}
+{"want":2,"name":"F357: an unterminated heredoc stays a mention","cmd":"cat <<EOF\nJira text with no terminator\n$K sync"}
